@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limit Hız Simülasyonu</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #controls, #info {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            max-width: 350px;
+        }
+        #controls {
+            top: 10px;
+            left: 10px;
+        }
+        #info {
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-family: monospace;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 11px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .parachute-control {
+            background: #ff9800;
+            font-weight: bold;
+        }
+        .parachute-control:hover {
+            background: #f57c00;
+        }
+        .vector-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .terminal-indicator {
+            color: #ffff00;
+            font-weight: bold;
+        }
+        .parachute-status {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .modal-bg {
+            position: fixed;
+            z-index: 9999;
+            left: 0; top: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 25px 20px 15px 20px;
+            border-radius: 10px;
+            max-width: 95vw;
+            width: 360px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+            text-align: left;
+            font-size: 16px;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: #4169E1;
+        }
+        .modal-content ul {
+            margin: 10px 0 10px 18px;
+            padding: 0;
+            font-size: 15px;
+        }
+        .modal-content button {
+            background: #4169E1;
+            color: #fff;
+            border: none;
+            padding: 7px 18px;
+            border-radius: 5px;
+            font-size: 15px;
+            margin-top: 10px;
+            float: right;
+            cursor: pointer;
+        }
+        .modal-content button:hover {
+            background: #314c8c;
+        }
+        @media (max-width: 800px) {
+            #controls, #info {
+                max-width: 95vw;
+                font-size: 15px;
+                padding: 10px;
+            }
+            #controls {
+                left: 2vw;
+                right: 2vw;
+                top: 2vw;
+            }
+            #info {
+                right: 2vw;
+                top: auto;
+                bottom: 2vw;
+            }
+            button, input[type="range"] {
+                font-size: 14px;
+            }
+        }
+        @media (max-width: 500px) {
+            #controls, #info {
+                position: static;
+                width: 100vw;
+                max-width: 100vw;
+                border-radius: 0;
+                font-size: 13px;
+                padding: 5px;
+            }
+            #controls h3 { font-size: 1.1em; }
+            .control-group { margin-bottom: 8px; }
+            button, input[type="range"] { font-size: 13px; }
+        }
+        canvas {
+            width: 100vw !important;
+            height: 100vh !important;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Popup Modal -->
+    <div id="popup-modal" class="modal-bg" style="display:none;">
+        <div class="modal-content">
+            <h2>Kullanım Bilgilendirmesi</h2>
+            <ul>
+                <li>Simülasyon parametrelerini (kütle, yerçekimi, sürüklenme katsayısı, ortam yoğunluğu, paraşüt yüzey alanı) ayarlayabilirsiniz.</li>
+                <li>🪂 <b>Paraşütü Aç/Kapat</b> butonu ile paraşütü açabilir veya kapatabilirsiniz.</li>
+                <li><b>Atlamayı Başlat</b> ile simülasyonu başlatabilirsiniz.</li>
+                <li><b>Sıfırla</b> ile tüm değerleri başa döndürebilirsiniz.</li>
+                <li>Mobil ve tablet cihazlarda da rahatça kullanabilirsiniz.</li>
+            </ul>
+            <button id="close-modal-btn">Kapat</button>
+            <div style="clear:both"></div>
+        </div>
+    </div>
+    <div id="controls">
+        <h3>Limit Hız Simülasyonu</h3>
+        <div class="control-group">
+            <label>1. Kütle (m) - kg: <span id="mass-value">80</span></label>
+            <input type="range" id="mass" min="50" max="150" step="5" value="80">
+        </div>
+        <div class="control-group">
+            <label>2. Yerçekimi İvmesi (g) - m/s²: <span id="gravity-value">9.81</span></label>
+            <input type="range" id="gravity" min="1.0" max="25.0" step="0.1" value="9.81">
+        </div>
+        <div class="control-group">
+            <label>3. Sürüklenme Katsayısı (Cd): <span id="drag-coeff-value">0.6</span></label>
+            <input type="range" id="drag-coeff" min="0.1" max="2.0" step="0.1" value="0.6">
+        </div>
+        <div class="control-group">
+            <label>4. Paraşüt Yüzey Alanı (A) - m²: <span id="area-value">0.7</span></label>
+            <input type="range" id="area" min="0.5" max="60" step="0.5" value="0.7">
+        </div>
+        <div class="control-group">
+            <label>5. Ortam Yoğunluğu (ρ) - kg/m³: <span id="density-value">1.21</span></label>
+            <input type="range" id="density" min="0.1" max="10" step="0.01" value="1.21">
+        </div>
+        <div class="control-group">
+            <label>Paraşüt Durumu:</label>
+            <button id="parachute-btn" class="parachute-control">🪂 Paraşütü Aç/Kapat</button>
+        </div>
+        <div class="control-group">
+            <button id="start-btn">Atlamayı Başlat</button>
+            <button id="reset-btn">Sıfırla</button>
+        </div>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="show-vectors" checked> Kuvvet Vektörlerini Göster
+            </label>
+        </div>
+    </div>
+    <div id="info">
+        <div class="info-item">Kütle: <span id="mass-display">80</span> kg</div>
+        <div class="info-item">Yerçekimi: <span id="gravity-display">9.81</span> m/s²</div>
+        <div class="info-item">Sürüklenme Katsayısı: <span id="drag-display">0.6</span></div>
+        <div class="info-item">Yüzey Alanı: <span id="area-display">0.7</span> m²</div>
+        <div class="info-item">Ortam Yoğunluğu: <span id="density-display">1.21</span> kg/m³</div>
+        <div class="info-item">Paraşüt: <span id="parachute-status" class="parachute-status">Kapalı</span></div>
+        <div class="info-item">─────────────────</div>
+        <div class="info-item">Hız: <span id="velocity">0.00</span> m/s</div>
+        <div class="info-item">Limit Hız: <span id="terminal-velocity">0.00</span> m/s</div>
+        <div class="info-item">Ağırlık: <span id="weight-force">0.00</span> N</div>
+        <div class="info-item">Direnç Kuvveti: <span id="drag-force">0.00</span> N</div>
+        <div class="info-item">Net Kuvvet: <span id="net-force">0.00</span> N</div>
+        <div class="info-item">İvme: <span id="acceleration">0.00</span> m/s²</div>
+        <div class="info-item">Yükseklik: <span id="height">1000.0</span> m</div>
+        <div class="info-item">Zaman: <span id="time">0.00</span> s</div>
+        <div class="info-item"><span id="terminal-status"></span></div>
+    </div>
+    <div id="weight-label" class="vector-label">Ağırlık: 0.00 N</div>
+    <div id="drag-label" class="vector-label">Direnç: 0.00 N</div>
+    <div id="net-label" class="vector-label">Net: 0.00 N</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // --- SİMÜLASYON DEĞİŞKENLERİ VE TÜM KOD ---
+        let scene, camera, renderer, controls;
+        let parachutist, parachute, ground;
+        let weightArrow, dragArrow, netForceArrow;
+        let parachuteLines = [];
+        let isSimulating = false;
+        let startTime = 0;
+        let showVectors = true;
+        let atTerminalVelocity = false;
+        let parachuteOpen = false;
+        let mass = 80;
+        let gravity = 9.81;
+        let dragCoefficient = 0.6;
+        let area = 0.7;
+        let fluidDensity = 1.21;
+        const parachutePresets = {
+            closed: { area: 0.7, dragCoeff: 0.6 },
+            open: { area: 50, dragCoeff: 1.3 }
+        };
+        let position = { x: 0, y: 1000, z: 0 };
+        let velocity = { x: 0, y: 0, z: 0 };
+        let terminalVelocity = 0;
+        let acceleration = 0;
+        let weightForce = 0;
+        let dragForce = 0;
+        let netForce = 0;
+        let weightLabel, dragLabel, netLabel;
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x4169E1);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(10, 1020, 15);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 1000, 0);
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 1050, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            createGround();
+            createParachutist();
+            createForceVectors();
+            createEnvironment();
+            initVectorLabels();
+            window.addEventListener('resize', onWindowResize, false);
+        }
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        }
+        function createGround() {
+            const groundGeometry = new THREE.PlaneGeometry(500, 500);
+            const groundMaterial = new THREE.MeshLambertMaterial({
+                color: 0x90EE90,
+                transparent: true,
+                opacity: 0.8
+            });
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = 0;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            const gridHelper = new THREE.GridHelper(500, 50, 0x444444, 0x444444);
+            scene.add(gridHelper);
+        }
+        function createParachutist() {
+            const parachutistGroup = new THREE.Group();
+            const helmetGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const helmetMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+            const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
+            helmet.position.y = 1.4;
+            helmet.castShadow = true;
+            parachutistGroup.add(helmet);
+            const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const headMaterial = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.35;
+            head.castShadow = true;
+            parachutistGroup.add(head);
+            const neckGeometry = new THREE.CylinderGeometry(0.12, 0.12, 0.15, 8);
+            const neckMaterial = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+            const neck = new THREE.Mesh(neckGeometry, neckMaterial);
+            neck.position.y = 1.0;
+            neck.castShadow = true;
+            parachutistGroup.add(neck);
+            const torsoGeometry = new THREE.BoxGeometry(0.7, 1.0, 0.3);
+            const torsoMaterial = new THREE.MeshPhongMaterial({ color: 0x1e88e5 });
+            const torso = new THREE.Mesh(torsoGeometry, torsoMaterial);
+            torso.position.y = 0.4;
+            torso.castShadow = true;
+            parachutistGroup.add(torso);
+            const backpackGeometry = new THREE.BoxGeometry(0.5, 0.7, 0.25);
+            const backpackMaterial = new THREE.MeshPhongMaterial({ color: 0x8B4513 });
+            const backpack = new THREE.Mesh(backpackGeometry, backpackMaterial);
+            backpack.position.set(0, 0.4, -0.35);
+            backpack.castShadow = true;
+            parachutistGroup.add(backpack);
+            const shoulderGeometry = new THREE.SphereGeometry(0.18, 12, 12);
+            const shoulderMaterial = new THREE.MeshPhongMaterial({ color: 0x1e88e5 });
+            const leftShoulder = new THREE.Mesh(shoulderGeometry, shoulderMaterial);
+            leftShoulder.position.set(-0.45, 0.6, 0);
+            leftShoulder.castShadow = true;
+            parachutistGroup.add(leftShoulder);
+            const rightShoulder = new THREE.Mesh(shoulderGeometry, shoulderMaterial);
+            rightShoulder.position.set(0.45, 0.6, 0);
+            rightShoulder.castShadow = true;
+            parachutistGroup.add(rightShoulder);
+            const upperArmGeometry = new THREE.CylinderGeometry(0.1, 0.12, 0.6, 8);
+            const armMaterial = new THREE.MeshPhongMaterial({ color: 0x1e88e5 });
+            const leftUpperArm = new THREE.Mesh(upperArmGeometry, armMaterial);
+            leftUpperArm.position.set(-0.65, 0.15, 0);
+            leftUpperArm.rotation.z = Math.PI / 6;
+            leftUpperArm.rotation.x = Math.PI / 8;
+            leftUpperArm.castShadow = true;
+            parachutistGroup.add(leftUpperArm);
+            const rightUpperArm = new THREE.Mesh(upperArmGeometry, armMaterial);
+            rightUpperArm.position.set(0.65, 0.15, 0);
+            rightUpperArm.rotation.z = -Math.PI / 6;
+            rightUpperArm.rotation.x = Math.PI / 8;
+            rightUpperArm.castShadow = true;
+            parachutistGroup.add(rightUpperArm);
+            const handGeometry = new THREE.SphereGeometry(0.07, 8, 8);
+            const handMaterial = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+            const leftHand = new THREE.Mesh(handGeometry, handMaterial);
+            leftHand.position.set(-0.9, -0.15, 0);
+            leftHand.castShadow = true;
+            parachutistGroup.add(leftHand);
+            const rightHand = new THREE.Mesh(handGeometry, handMaterial);
+            rightHand.position.set(0.9, -0.15, 0);
+            rightHand.castShadow = true;
+            parachutistGroup.add(rightHand);
+            const thighGeometry = new THREE.CylinderGeometry(0.13, 0.1, 0.7, 8);
+            const legMaterial = new THREE.MeshPhongMaterial({ color: 0x2e2e2e });
+            const leftThigh = new THREE.Mesh(thighGeometry, legMaterial);
+            leftThigh.position.set(-0.15, -1.0, 0);
+            leftThigh.rotation.x = -Math.PI / 12;
+            leftThigh.castShadow = true;
+            parachutistGroup.add(leftThigh);
+            const rightThigh = new THREE.Mesh(thighGeometry, legMaterial);
+            rightThigh.position.set(0.15, -1.0, 0);
+            rightThigh.rotation.x = -Math.PI / 12;
+            rightThigh.castShadow = true;
+            parachutistGroup.add(rightThigh);
+            const calfGeometry = new THREE.CylinderGeometry(0.09, 0.1, 0.7, 8);
+            const leftCalf = new THREE.Mesh(calfGeometry, legMaterial);
+            leftCalf.position.set(-0.15, -1.7, 0);
+            leftCalf.rotation.x = -Math.PI / 16;
+            leftCalf.castShadow = true;
+            parachutistGroup.add(leftCalf);
+            const rightCalf = new THREE.Mesh(calfGeometry, legMaterial);
+            rightCalf.position.set(0.15, -1.7, 0);
+            rightCalf.rotation.x = -Math.PI / 16;
+            rightCalf.castShadow = true;
+            parachutistGroup.add(rightCalf);
+            const footGeometry = new THREE.BoxGeometry(0.15, 0.08, 0.35);
+            const footMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+            const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+            leftFoot.position.set(-0.15, -2.15, 0.1);
+            leftFoot.castShadow = true;
+            parachutistGroup.add(leftFoot);
+            const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+            rightFoot.position.set(0.15, -2.15, 0.1);
+            rightFoot.castShadow = true;
+            parachutistGroup.add(rightFoot);
+            parachutistGroup.position.set(0, 1000, 0);
+            scene.add(parachutistGroup);
+            parachutist = parachutistGroup;
+            createParachute();
+        }
+        function createParachute() {
+            const parachuteGroup = new THREE.Group();
+            const parachuteGeometry = new THREE.SphereGeometry(7, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const parachuteMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff6b6b,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            const parachuteMesh = new THREE.Mesh(parachuteGeometry, parachuteMaterial);
+            parachuteMesh.castShadow = true;
+            parachuteMesh.receiveShadow = true;
+            parachuteGroup.add(parachuteMesh);
+            const ropeCount = 16;
+            for (let i = 0; i < ropeCount; i++) {
+                const angle = (i / ropeCount) * Math.PI * 2;
+                const x = Math.cos(angle) * 6;
+                const z = Math.sin(angle) * 6;
+                const points = [
+                    new THREE.Vector3(x, 0, z),
+                    new THREE.Vector3(0, -10, 0)
+                ];
+                const ropeGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x8b4513 });
+                const rope = new THREE.Line(ropeGeometry, ropeMaterial);
+                parachuteGroup.add(rope);
+                parachuteLines.push(rope);
+            }
+            parachuteGroup.position.set(0, 1010, 0);
+            parachuteGroup.visible = false;
+            scene.add(parachuteGroup);
+            parachute = parachuteGroup;
+            updateParachuteScale();
+        }
+        function updateParachuteScale() {
+            if (!parachute) return;
+            const baseArea = Math.PI * 7 * 7;
+            const scale = Math.sqrt(area / baseArea);
+            parachute.scale.set(scale, scale, scale);
+        }
+        function updateRopes() {
+            if (!parachuteOpen || !parachute) return;
+            const backpackPosition = new THREE.Vector3(0, 0, -0.35);
+            backpackPosition.applyMatrix4(parachutist.matrixWorld);
+            for (let i = 0; i < parachuteLines.length; i++) {
+                const rope = parachuteLines[i];
+                const geometry = rope.geometry;
+                const positions = geometry.attributes.position.array;
+                const angle = (i / parachuteLines.length) * Math.PI * 2;
+                const x = Math.cos(angle) * 6 * parachute.scale.x;
+                const z = Math.sin(angle) * 6 * parachute.scale.z;
+                const localBackpack = parachute.worldToLocal(backpackPosition.clone());
+                positions[0] = x;
+                positions[1] = 0;
+                positions[2] = z;
+                positions[3] = localBackpack.x;
+                positions[4] = localBackpack.y;
+                positions[5] = localBackpack.z;
+                geometry.attributes.position.needsUpdate = true;
+            }
+        }
+        function createForceVectors() {
+            const weightDirection = new THREE.Vector3(0, -1, 0);
+            weightArrow = new THREE.ArrowHelper(weightDirection, new THREE.Vector3(0, 0, 0), 1, 0xff0000, 2, 1);
+            scene.add(weightArrow);
+            const dragDirection = new THREE.Vector3(0, 1, 0);
+            dragArrow = new THREE.ArrowHelper(dragDirection, new THREE.Vector3(0, 0, 0), 1, 0x00ff00, 2, 1);
+            scene.add(dragArrow);
+            const netDirection = new THREE.Vector3(0, -1, 0);
+            netForceArrow = new THREE.ArrowHelper(netDirection, new THREE.Vector3(0, 0, 0), 1, 0x0000ff, 2, 1);
+            scene.add(netForceArrow);
+        }
+        function initVectorLabels() {
+            weightLabel = document.getElementById('weight-label');
+            dragLabel = document.getElementById('drag-label');
+            netLabel = document.getElementById('net-label');
+        }
+        function updateForceVectors() {
+            if (!showVectors) {
+                weightArrow.visible = false;
+                dragArrow.visible = false;
+                netForceArrow.visible = false;
+                weightLabel.style.display = 'none';
+                dragLabel.style.display = 'none';
+                netLabel.style.display = 'none';
+                return;
+            }
+            weightArrow.visible = true;
+            dragArrow.visible = true;
+            netForceArrow.visible = true;
+            weightLabel.style.display = 'block';
+            dragLabel.style.display = 'block';
+            netLabel.style.display = 'block';
+            const objectPos = parachutist.position;
+            const vectorScale = 0.5;
+            weightArrow.position.copy(objectPos);
+            weightArrow.position.x += 3;
+            const weightLength = (weightForce / 100) * vectorScale;
+            weightArrow.setLength(weightLength, weightLength * 0.3, weightLength * 0.2);
+            dragArrow.position.copy(objectPos);
+            dragArrow.position.x -= 3;
+            const dragLength = (dragForce / 100) * vectorScale;
+            dragArrow.setLength(dragLength, dragLength * 0.3, dragLength * 0.2);
+            netForceArrow.position.copy(objectPos);
+            netForceArrow.position.z += 3;
+            if (Math.abs(netForce) < 1) {
+                netForceArrow.visible = false;
+            } else {
+                const netLength = Math.abs(netForce / 100) * vectorScale;
+                const netDirection = netForce > 0 ? new THREE.Vector3(0, -1, 0) : new THREE.Vector3(0, 1, 0);
+                netForceArrow.setDirection(netDirection);
+                netForceArrow.setLength(netLength, netLength * 0.3, netLength * 0.2);
+            }
+            updateVectorLabels();
+        }
+        function updateVectorLabels() {
+            const vector = new THREE.Vector3();
+            vector.setFromMatrixPosition(weightArrow.matrixWorld);
+            vector.project(camera);
+            const weightScreenPos = {
+                x: (vector.x * 0.5 + 0.5) * window.innerWidth,
+                y: (vector.y * -0.5 + 0.5) * window.innerHeight
+            };
+            weightLabel.style.left = (weightScreenPos.x + 10) + 'px';
+            weightLabel.style.top = (weightScreenPos.y - 10) + 'px';
+            weightLabel.textContent = `Ağırlık: ${weightForce.toFixed(0)} N`;
+            weightLabel.style.color = '#ff0000';
+            vector.setFromMatrixPosition(dragArrow.matrixWorld);
+            vector.project(camera);
+            const dragScreenPos = {
+                x: (vector.x * 0.5 + 0.5) * window.innerWidth,
+                y: (vector.y * -0.5 + 0.5) * window.innerHeight
+            };
+            dragLabel.style.left = (dragScreenPos.x + 10) + 'px';
+            dragLabel.style.top = (dragScreenPos.y - 10) + 'px';
+            dragLabel.textContent = `Direnç: ${dragForce.toFixed(0)} N`;
+            dragLabel.style.color = '#00ff00';
+            if (netForceArrow.visible) {
+                vector.setFromMatrixPosition(netForceArrow.matrixWorld);
+                vector.project(camera);
+                const netScreenPos = {
+                    x: (vector.x * 0.5 + 0.5) * window.innerWidth,
+                    y: (vector.y * -0.5 + 0.5) * window.innerHeight
+                };
+                netLabel.style.left = (netScreenPos.x + 10) + 'px';
+                netLabel.style.top = (netScreenPos.y - 10) + 'px';
+                netLabel.style.display = 'block';
+            } else {
+                netLabel.style.display = 'none';
+            }
+            netLabel.textContent = `Net: ${netForce.toFixed(0)} N`;
+            netLabel.style.color = atTerminalVelocity ? '#ffff00' : '#0000ff';
+        }
+        function createEnvironment() {
+            const cloudGeometry = new THREE.SphereGeometry(20, 16, 16);
+            const cloudMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.6
+            });
+            for (let i = 0; i < 8; i++) {
+                const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+                cloud.position.set(
+                    (Math.random() - 0.5) * 400,
+                    200 + Math.random() * 600,
+                    (Math.random() - 0.5) * 400
+                );
+                cloud.scale.set(
+                    0.5 + Math.random() * 0.5,
+                    0.3 + Math.random() * 0.2,
+                    0.5 + Math.random() * 0.5
+                );
+                scene.add(cloud);
+            }
+        }
+        function toggleParachute() {
+            parachuteOpen = !parachuteOpen;
+            parachute.visible = parachuteOpen;
+            const params = parachuteOpen ? parachutePresets.open : parachutePresets.closed;
+            area = params.area;
+            dragCoefficient = params.dragCoeff;
+            document.getElementById('area').value = area;
+            document.getElementById('area-value').textContent = area;
+            document.getElementById('drag-coeff').value = dragCoefficient;
+            document.getElementById('drag-coeff-value').textContent = dragCoefficient;
+            const statusText = parachuteOpen ? "Açık" : "Kapalı";
+            document.getElementById('parachute-status').textContent = statusText;
+            calculateTerminalVelocity();
+            updateParachuteScale();
+        }
+        function calculateTerminalVelocity() {
+            terminalVelocity = Math.sqrt((2 * mass * gravity) / (fluidDensity * dragCoefficient * area));
+            return terminalVelocity;
+        }
+        function updatePhysics(deltaTime) {
+            if (!isSimulating) return;
+            weightForce = mass * gravity;
+            const currentSpeed = Math.abs(velocity.y);
+            dragForce = 0.5 * fluidDensity * dragCoefficient * area * currentSpeed * currentSpeed;
+            netForce = weightForce - dragForce;
+            const terminalThreshold = 0.95;
+            if (currentSpeed >= terminalVelocity * terminalThreshold) {
+                atTerminalVelocity = true;
+                velocity.y = -terminalVelocity;
+                acceleration = 0;
+                netForce = 0;
+                dragForce = weightForce;
+            } else {
+                atTerminalVelocity = false;
+                acceleration = netForce / mass;
+                velocity.y -= acceleration * deltaTime;
+            }
+            position.y += velocity.y * deltaTime;
+            if (position.y <= 2) {
+                position.y = 2;
+                velocity.y = 0;
+                isSimulating = false;
+                atTerminalVelocity = false;
+            }
+            parachutist.position.y = position.y;
+            if (parachuteOpen) {
+                parachute.position.set(position.x, position.y + 10, position.z);
+                updateRopes();
+            }
+            if (isSimulating) {
+                const targetPosition = new THREE.Vector3(position.x + 10, position.y + 5, position.z + 15);
+                camera.position.lerp(targetPosition, 0.05);
+                controls.target.set(position.x, position.y, position.z);
+                controls.update();
+            }
+            updateForceVectors();
+            updateUI(currentSpeed);
+        }
+        function updateUI(speed) {
+            document.getElementById('mass-display').textContent = mass;
+            document.getElementById('gravity-display').textContent = gravity.toFixed(2);
+            document.getElementById('drag-display').textContent = dragCoefficient.toFixed(1);
+            document.getElementById('area-display').textContent = area.toFixed(1);
+            document.getElementById('density-display').textContent = fluidDensity.toFixed(2);
+            document.getElementById('velocity').textContent = speed.toFixed(1);
+            document.getElementById('terminal-velocity').textContent = terminalVelocity.toFixed(1);
+            document.getElementById('weight-force').textContent = weightForce.toFixed(0);
+            document.getElementById('drag-force').textContent = dragForce.toFixed(0);
+            document.getElementById('net-force').textContent = netForce.toFixed(0);
+            document.getElementById('acceleration').textContent = acceleration.toFixed(2);
+            document.getElementById('height').textContent = position.y.toFixed(0);
+            const statusElement = document.getElementById('terminal-status');
+            if (atTerminalVelocity) {
+                statusElement.innerHTML = '<span class="terminal-indicator">🎯 LİMİT HIZA ULAŞILDI</span>';
+            } else {
+                statusElement.textContent = '';
+            }
+            if (isSimulating) {
+                const currentTime = (Date.now() - startTime) / 1000;
+                document.getElementById('time').textContent = currentTime.toFixed(1);
+            }
+        }
+        function setupControls() {
+            const massSlider = document.getElementById('mass');
+            const gravitySlider = document.getElementById('gravity');
+            const dragCoeffSlider = document.getElementById('drag-coeff');
+            const areaSlider = document.getElementById('area');
+            const densitySlider = document.getElementById('density');
+            const showVectorsCheckbox = document.getElementById('show-vectors');
+            massSlider.oninput = function() {
+                mass = parseFloat(this.value);
+                document.getElementById('mass-value').textContent = mass;
+                calculateTerminalVelocity();
+            };
+            gravitySlider.oninput = function() {
+                gravity = parseFloat(this.value);
+                document.getElementById('gravity-value').textContent = gravity.toFixed(2);
+                calculateTerminalVelocity();
+            };
+            dragCoeffSlider.oninput = function() {
+                dragCoefficient = parseFloat(this.value);
+                document.getElementById('drag-coeff-value').textContent = dragCoefficient.toFixed(1);
+                calculateTerminalVelocity();
+            };
+            areaSlider.oninput = function() {
+                area = parseFloat(this.value);
+                document.getElementById('area-value').textContent = area.toFixed(1);
+                calculateTerminalVelocity();
+                updateParachuteScale();
+            };
+            densitySlider.oninput = function() {
+                fluidDensity = parseFloat(this.value);
+                document.getElementById('density-value').textContent = fluidDensity.toFixed(2);
+                document.getElementById('density-display').textContent = fluidDensity.toFixed(2);
+                calculateTerminalVelocity();
+            };
+            showVectorsCheckbox.onchange = function() {
+                showVectors = this.checked;
+                updateForceVectors();
+            };
+            document.getElementById('parachute-btn').onclick = function() {
+                if (isSimulating) {
+                    toggleParachute();
+                }
+            };
+            document.getElementById('start-btn').onclick = function() {
+                if (!isSimulating) {
+                    startSimulation();
+                }
+            };
+            document.getElementById('reset-btn').onclick = function() {
+                resetSimulation();
+            };
+        }
+        function startSimulation() {
+            isSimulating = true;
+            startTime = Date.now();
+            velocity.y = 0;
+            atTerminalVelocity = false;
+            calculateTerminalVelocity();
+        }
+        function resetSimulation() {
+            isSimulating = false;
+            atTerminalVelocity = false;
+            parachuteOpen = false;
+            parachute.visible = false;
+            area = parachutePresets.closed.area;
+            dragCoefficient = parachutePresets.closed.dragCoeff;
+            document.getElementById('area').value = area;
+            document.getElementById('area-value').textContent = area;
+            document.getElementById('drag-coeff').value = dragCoefficient;
+            document.getElementById('drag-coeff-value').textContent = dragCoefficient;
+            document.getElementById('parachute-status').textContent = "Kapalı";
+            position.y = 1000;
+            velocity.y = 0;
+            acceleration = 0;
+            netForce = 0;
+            dragForce = 0;
+            parachutist.position.y = 1000;
+            parachute.position.y = 1010;
+            camera.position.set(10, 1020, 15);
+            controls.target.set(0, 1000, 0);
+            controls.update();
+            calculateTerminalVelocity();
+            updateUI(0);
+            updateForceVectors();
+            document.getElementById('time').textContent = '0.00';
+            updateParachuteScale();
+        }
+        function animate() {
+            requestAnimationFrame(animate);
+            const deltaTime = 0.016;
+            updatePhysics(deltaTime);
+            if (!isSimulating) controls.update();
+            renderer.render(scene, camera);
+        }
+        // Popup açma ve kapama
+        function showUsagePopup() {
+            document.getElementById('popup-modal').style.display = 'flex';
+        }
+        function closeUsagePopup() {
+            document.getElementById('popup-modal').style.display = 'none';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            showUsagePopup();
+            document.getElementById('close-modal-btn').onclick = closeUsagePopup;
+        });
+        // Otomatik sıfırlama
+        function tryReset() {
+            if (typeof resetSimulation === "function") {
+                resetSimulation();
+            } else {
+                setTimeout(tryReset, 100);
+            }
+        }
+        window.addEventListener('load', tryReset);
+
+        // Başlat
+        initThreeJS();
+        setupControls();
+        calculateTerminalVelocity();
+        updateForceVectors();
+        animate();
+    </script>
+</body>
+</html>
