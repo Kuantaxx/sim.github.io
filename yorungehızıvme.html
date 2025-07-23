@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Çembersel Hareket Simülasyonu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            max-width: 320px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+        
+        .control-group input {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+        
+        .control-group input:focus {
+            outline: 2px solid #4CAF50;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .object-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .object-btn {
+            padding: 10px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .object-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .object-btn.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 200px;
+            font-size: 12px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                max-width: 280px;
+                padding: 15px;
+                font-size: 12px;
+            }
+            
+            .object-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .info-panel {
+                font-size: 10px;
+                padding: 10px;
+            }
+            
+            .legend {
+                font-size: 10px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div class="controls">
+            <h3 style="margin-bottom: 15px; color: #4CAF50;">Kontroller</h3>
+            
+            <div class="control-group">
+                <label>Cisim Tipi:</label>
+                <div class="object-buttons">
+                    <button class="object-btn active" data-type="planet">🌍 Gezegen</button>
+                    <button class="object-btn" data-type="naturalSatellite">🌙 Doğal Uydu</button>
+                    <button class="object-btn" data-type="artificialSatellite">🛰️ Yapay Uydu</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="radius">Yörünge yarıçapı (m): <span id="radiusValue">5</span></label>
+                <input type="range" id="radius" min="2" max="15" value="5" step="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="speed">Çizgisel Hız (m/s): <span id="speedValue">1</span></label>
+                <input type="range" id="speed" min="0.1" max="3" value="1" step="0.1">
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showTrail" checked>
+                <label for="showTrail">Yörünge İzi</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showVelocity" checked>
+                <label for="showVelocity">Çizgisel Hız Vektörü</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showAcceleration" checked>
+                <label for="showAcceleration">Merkezcil İvme Vektörü</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showCentripetal" checked>
+                <label for="showCentripetal">Merkezcil Kuvvet Vektörü</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="showOrbit" checked>
+                <label for="showOrbit">Yörünge Çemberi</label>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h4 style="color: #4CAF50; margin-bottom: 10px;">Fiziksel Değerler</h4>
+			<div>Periyot: <span id="period">0</span> s</div>
+            <div>Çizgisel Hız: <span id="velocityMagnitude">0</span> m/s</div>
+			<div>Açısal Hız: <span id="angularVelocity">0</span> rad/s</div>
+            <div>Merkezcil İvme: <span id="accelerationMagnitude">0</span> m/s²</div>
+            <div>Merkezcil Kuvvet: <span id="centripetalForce">0</span> N</div>
+           
+            
+        </div>
+        
+        <div class="legend">
+            <h4 style="color: #4CAF50; margin-bottom: 10px;">Renk Açıklaması</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff0000;"></div>
+                <span>Çizgisel Hız Vektörü</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00ff00;"></div>
+                <span>Merkezcil İvme Vektörü</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0080ff;"></div>
+                <span>Merkezcil Kuvvet Vektörü</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffffff;"></div>
+                <span>Yörünge</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffff00;"></div>
+                <span>Yörünge İzi</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        class CircularMotionSimulation {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+                
+                this.setupRenderer();
+                this.setupCamera();
+                this.setupControls();
+                this.setupLights();
+                this.setupObjects();
+                this.setupEventListeners();
+                
+                this.animate();
+            }
+            
+            setupRenderer() {
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.setClearColor(0x000510);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+            
+            setupCamera() {
+                this.camera.position.set(15, 10, 15);
+                this.camera.lookAt(0, 0, 0);
+            }
+            
+            setupControls() {
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.enableZoom = true;
+                this.controls.enablePan = true;
+                this.controls.autoRotate = false;
+                
+                this.controls.touches = {
+                    ONE: THREE.TOUCH.ROTATE,
+                    TWO: THREE.TOUCH.DOLLY_PAN
+                };
+            }
+            
+            setupLights() {
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 10, 5);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                this.scene.add(directionalLight);
+                
+                const pointLight = new THREE.PointLight(0xffffff, 0.5, 100);
+                pointLight.position.set(0, 0, 0);
+                this.scene.add(pointLight);
+                
+                this.createStarField();
+            }
+            
+            createStarField() {
+                const starsGeometry = new THREE.BufferGeometry();
+                const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+                
+                const starsVertices = [];
+                for (let i = 0; i < 10000; i++) {
+                    const x = (Math.random() - 0.5) * 2000;
+                    const y = (Math.random() - 0.5) * 2000;
+                    const z = (Math.random() - 0.5) * 2000;
+                    starsVertices.push(x, y, z);
+                }
+                
+                starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+                const stars = new THREE.Points(starsGeometry, starsMaterial);
+                this.scene.add(stars);
+            }
+            
+            setupObjects() {
+                // Merkez cismi (Güneş benzeri)
+                const centerGeometry = new THREE.SphereGeometry(1, 32, 32);
+                const centerMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xffaa00,
+                    emissive: 0xff4400,
+                    emissiveIntensity: 0.3
+                });
+                this.centerObject = new THREE.Mesh(centerGeometry, centerMaterial);
+                this.scene.add(this.centerObject);
+                
+                this.createMovingObject();
+                this.createOrbitCircle();
+                this.createVectors();
+                
+                this.trailPoints = [];
+                this.createTrail();
+                
+                this.angle = 0;
+                this.radius = 5;
+                this.speed = 1;
+                this.objectType = 'planet';
+            }
+            
+            createMovingObject() {
+                let geometry, material;
+                
+                switch(this.objectType) {
+                    case 'planet':
+                        geometry = new THREE.SphereGeometry(0.5, 32, 32);
+                        material = new THREE.MeshPhongMaterial({ 
+                            color: 0x4488ff,
+                            shininess: 100
+                        });
+                        break;
+                        
+                    case 'naturalSatellite':
+                        geometry = new THREE.SphereGeometry(0.3, 32, 32);
+                        material = new THREE.MeshPhongMaterial({ 
+                            color: 0xaaaaaa,
+                            roughness: 0.8,
+                            metalness: 0.1,
+                            emissive: 0x222222,
+                            emissiveIntensity: 0.1
+                        });
+                        break;
+                        
+                    case 'artificialSatellite':
+                        const group = new THREE.Group();
+                        
+                        const bodyGeometry = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+                        const bodyMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0x333333,
+                            metalness: 0.9,
+                            roughness: 0.1,
+                            emissive: 0x111111,
+                            emissiveIntensity: 0.1
+                        });
+                        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                        group.add(body);
+                        
+                        const panelGeometry = new THREE.BoxGeometry(1.2, 0.02, 0.6);
+                        const panelMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0x003366,
+                            metalness: 0.7,
+                            roughness: 0.3,
+                            emissive: 0x001122,
+                            emissiveIntensity: 0.1
+                        });
+                        
+                        const leftPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+                        leftPanel.position.set(-0.8, 0, 0);
+                        group.add(leftPanel);
+                        
+                        const rightPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+                        rightPanel.position.set(0.8, 0, 0);
+                        group.add(rightPanel);
+                        
+                        const antennaGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.8);
+                        const antennaMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0xcc3333,
+                            emissive: 0x331111,
+                            emissiveIntensity: 0.2
+                        });
+                        const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+                        antenna.position.set(0, 0.7, 0);
+                        group.add(antenna);
+                        
+                        const dishGeometry = new THREE.SphereGeometry(0.15, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+                        const dishMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0x666666,
+                            metalness: 0.8,
+                            roughness: 0.2,
+                            emissive: 0x222222,
+                            emissiveIntensity: 0.1
+                        });
+                        const dish = new THREE.Mesh(dishGeometry, dishMaterial);
+                        dish.position.set(0, 0.2, 0.3);
+                        dish.rotation.x = -Math.PI / 4;
+                        group.add(dish);
+                        
+                        if (this.movingObject) {
+                            this.scene.remove(this.movingObject);
+                        }
+                        this.movingObject = group;
+                        this.movingObject.castShadow = true;
+                        this.movingObject.receiveShadow = true;
+                        this.scene.add(this.movingObject);
+                        return;
+                }
+                
+                if (this.movingObject) {
+                    this.scene.remove(this.movingObject);
+                }
+                
+                this.movingObject = new THREE.Mesh(geometry, material);
+                this.movingObject.castShadow = true;
+                this.movingObject.receiveShadow = true;
+                this.scene.add(this.movingObject);
+            }
+            
+            createOrbitCircle() {
+                const points = [];
+                const segments = 64;
+                
+                for (let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    points.push(new THREE.Vector3(
+                        Math.cos(angle) * this.radius,
+                        0,
+                        Math.sin(angle) * this.radius
+                    ));
+                }
+                
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ 
+                    color: 0xffffff, 
+                    transparent: true, 
+                    opacity: 0.5 
+                });
+                
+                if (this.orbitCircle) {
+                    this.scene.remove(this.orbitCircle);
+                }
+                
+                this.orbitCircle = new THREE.Line(geometry, material);
+                this.scene.add(this.orbitCircle);
+            }
+            
+            createVectors() {
+                const velocityGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(1, 0, 0)
+                ]);
+                const velocityMaterial = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3 });
+                this.velocityVector = new THREE.Line(velocityGeometry, velocityMaterial);
+                this.scene.add(this.velocityVector);
+                
+                const accelerationGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(1, 0, 0)
+                ]);
+                const accelerationMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 3 });
+                this.accelerationVector = new THREE.Line(accelerationGeometry, accelerationMaterial);
+                this.scene.add(this.accelerationVector);
+                
+                const centripetalGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(1, 0, 0)
+                ]);
+                const centripetalMaterial = new THREE.LineBasicMaterial({ color: 0x0080ff, linewidth: 4 });
+                this.centripetalVector = new THREE.Line(centripetalGeometry, centripetalMaterial);
+                this.scene.add(this.centripetalVector);
+                
+                const coneGeometry = new THREE.ConeGeometry(0.1, 0.3, 8);
+                
+                this.velocityCone = new THREE.Mesh(coneGeometry, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+                this.scene.add(this.velocityCone);
+                
+                this.accelerationCone = new THREE.Mesh(coneGeometry, new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+                this.scene.add(this.accelerationCone);
+                
+                this.centripetalCone = new THREE.Mesh(coneGeometry, new THREE.MeshBasicMaterial({ color: 0x0080ff }));
+                this.scene.add(this.centripetalCone);
+            }
+            
+            createTrail() {
+                const trailGeometry = new THREE.BufferGeometry();
+                const trailMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0xffff00, 
+                    transparent: true, 
+                    opacity: 0.6 
+                });
+                this.trail = new THREE.Line(trailGeometry, trailMaterial);
+                this.scene.add(this.trail);
+            }
+            
+            updateTrail(position) {
+                this.trailPoints.push(position.clone());
+                
+                if (this.trailPoints.length > 200) {
+                    this.trailPoints.shift();
+                }
+                
+                if (this.trailPoints.length > 1) {
+                    const geometry = new THREE.BufferGeometry().setFromPoints(this.trailPoints);
+                    this.trail.geometry.dispose();
+                    this.trail.geometry = geometry;
+                }
+            }
+            
+            updatePhysics() {
+                const x = Math.cos(this.angle) * this.radius;
+                const z = Math.sin(this.angle) * this.radius;
+                const position = new THREE.Vector3(x, 0, z);
+                
+                this.movingObject.position.copy(position);
+                
+                if (this.objectType === 'artificialSatellite') {
+                    this.movingObject.rotation.y += 0.02;
+                    this.movingObject.rotation.z += 0.01;
+                }
+                
+                const velocityX = -Math.sin(this.angle) * this.speed;
+                const velocityZ = Math.cos(this.angle) * this.speed;
+                const velocity = new THREE.Vector3(velocityX, 0, velocityZ);
+                
+                const acceleration = position.clone().normalize().multiplyScalar(-this.speed * this.speed / this.radius);
+                
+                this.updateVectors(position, velocity, acceleration);
+                
+                const velocityMagnitude = velocity.length();
+                const accelerationMagnitude = acceleration.length();
+                const angularVelocity = this.speed / this.radius;
+                const period = (2 * Math.PI) / angularVelocity;
+                const centripetalForce = accelerationMagnitude;
+                
+                document.getElementById('velocityMagnitude').textContent = velocityMagnitude.toFixed(2);
+                document.getElementById('accelerationMagnitude').textContent = accelerationMagnitude.toFixed(2);
+                document.getElementById('centripetalForce').textContent = centripetalForce.toFixed(2);
+                document.getElementById('angularVelocity').textContent = angularVelocity.toFixed(3);
+                document.getElementById('period').textContent = period.toFixed(2);
+                
+                if (document.getElementById('showTrail').checked) {
+                    this.updateTrail(position);
+                }
+                
+                this.angle += this.speed * 0.016;
+                this.centerObject.rotation.y += 0.01;
+            }
+            
+            updateVectors(position, velocity, acceleration) {
+                const scale = 2;
+                
+                if (document.getElementById('showVelocity').checked) {
+                    const velocityEnd = position.clone().add(velocity.clone().multiplyScalar(scale));
+                    const velocityPoints = [position, velocityEnd];
+                    this.velocityVector.geometry.setFromPoints(velocityPoints);
+                    this.velocityVector.visible = true;
+                    
+                    this.velocityCone.position.copy(velocityEnd);
+                    const velocityDirection = velocity.clone().normalize();
+                    this.velocityCone.lookAt(velocityEnd.clone().add(velocityDirection));
+                    this.velocityCone.rotateX(Math.PI / 2);
+                    this.velocityCone.visible = true;
+                } else {
+                    this.velocityVector.visible = false;
+                    this.velocityCone.visible = false;
+                }
+                
+                if (document.getElementById('showAcceleration').checked) {
+                    const accelerationEnd = position.clone().add(acceleration.clone().multiplyScalar(scale * 3));
+                    const accelerationPoints = [position, accelerationEnd];
+                    this.accelerationVector.geometry.setFromPoints(accelerationPoints);
+                    this.accelerationVector.visible = true;
+                    
+                    this.accelerationCone.position.copy(accelerationEnd);
+                    const accelerationDirection = acceleration.clone().normalize();
+                    this.accelerationCone.lookAt(accelerationEnd.clone().add(accelerationDirection));
+                    this.accelerationCone.rotateX(Math.PI / 2);
+                    this.accelerationCone.visible = true;
+                } else {
+                    this.accelerationVector.visible = false;
+                    this.accelerationCone.visible = false;
+                }
+                
+                if (document.getElementById('showCentripetal').checked) {
+                    const centripetalForceVector = acceleration.clone();
+                    const centripetalEnd = position.clone().add(centripetalForceVector.multiplyScalar(scale * 4));
+                    const centripetalPoints = [position, centripetalEnd];
+                    this.centripetalVector.geometry.setFromPoints(centripetalPoints);
+                    this.centripetalVector.visible = true;
+                    
+                    this.centripetalCone.position.copy(centripetalEnd);
+                    const centripetalDirection = acceleration.clone().normalize();
+                    this.centripetalCone.lookAt(centripetalEnd.clone().add(centripetalDirection));
+                    this.centripetalCone.rotateX(Math.PI / 2);
+                    this.centripetalCone.visible = true;
+                } else {
+                    this.centripetalVector.visible = false;
+                    this.centripetalCone.visible = false;
+                }
+            }
+            
+            setupEventListeners() {
+                const objectButtons = document.querySelectorAll('.object-btn');
+                objectButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        objectButtons.forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+                        
+                        this.objectType = e.target.dataset.type;
+                        this.createMovingObject();
+                    });
+                });
+                
+                const radiusSlider = document.getElementById('radius');
+                const radiusValue = document.getElementById('radiusValue');
+                radiusSlider.addEventListener('input', (e) => {
+                    this.radius = parseFloat(e.target.value);
+                    radiusValue.textContent = this.radius;
+                    this.createOrbitCircle();
+                    this.trailPoints = [];
+                });
+                
+                const speedSlider = document.getElementById('speed');
+                const speedValue = document.getElementById('speedValue');
+                speedSlider.addEventListener('input', (e) => {
+                    this.speed = parseFloat(e.target.value);
+                    speedValue.textContent = this.speed;
+                });
+                
+                document.getElementById('showOrbit').addEventListener('change', (e) => {
+                    this.orbitCircle.visible = e.target.checked;
+                });
+                
+                document.getElementById('showTrail').addEventListener('change', (e) => {
+                    this.trail.visible = e.target.checked;
+                    if (!e.target.checked) {
+                        this.trailPoints = [];
+                    }
+                });
+                
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+                
+                this.setupTouchEvents();
+            }
+            
+            setupTouchEvents() {
+                const canvas = this.renderer.domElement;
+                
+                let initialDistance = 0;
+                let initialScale = 1;
+                
+                canvas.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        initialDistance = this.getTouchDistance(e.touches[0], e.touches[1]);
+                        initialScale = this.camera.zoom;
+                    }
+                });
+                
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    
+                    if (e.touches.length === 2) {
+                        const currentDistance = this.getTouchDistance(e.touches[0], e.touches[1]);
+                        const scale = currentDistance / initialDistance;
+                        this.camera.zoom = initialScale * scale;
+                        this.camera.updateProjectionMatrix();
+                    }
+                });
+            }
+            
+            getTouchDistance(touch1, touch2) {
+                const dx = touch1.clientX - touch2.clientX;
+                const dy = touch1.clientY - touch2.clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                this.updatePhysics();
+                this.controls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            new CircularMotionSimulation();
+        });
+    </script>
+</body>
+</html>
