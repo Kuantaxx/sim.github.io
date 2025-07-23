@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Düzenlenmiş Yüzey Alanı Kontrollü Dikey Rüzgar Tüneli</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #4682B4 50%, #2F4F4F 100%);
+            overflow: hidden;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 1fr;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        /* Sol Panel - Analiz ve Grafik */
+        .left-analysis-panel {
+            grid-column: 1;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .motion-analysis {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            overflow-y: auto;
+        }
+        
+        .velocity-graph-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        /* Orta Panel - Ana Simülasyon */
+        .simulation-area {
+            grid-column: 2;
+            grid-row: 1;
+            position: relative;
+            background: linear-gradient(180deg, #87CEEB 0%, #4682B4 50%, #2F4F4F 100%);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        /* Sağ Panel - Kontroller */
+        .control-panel {
+            grid-column: 3;
+            grid-row: 1;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            padding: 15px;
+            overflow-y: auto;
+            border-radius: 10px;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+        }
+        
+        .continuous-tunnel {
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 90%;
+            border: 4px solid #1E90FF;
+            border-radius: 15px 15px 0 0;
+            background: rgba(30, 144, 255, 0.1);
+            overflow: visible;
+            box-shadow: inset 0 0 30px rgba(30, 144, 255, 0.3);
+            border-bottom: none;
+        }
+        
+        .continuous-tunnel.water {
+            background: rgba(30, 144, 255, 0.4);
+            border-color: #0066CC;
+        }
+        
+        .continuous-tunnel.oil {
+            background: rgba(255, 165, 0, 0.3);
+            border-color: #FF8C00;
+        }
+        
+        .depth-indicator {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            color: #1E90FF;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: bold;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #1E90FF;
+        }
+        
+        .falling-object {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: none;
+            z-index: 15;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+        }
+        
+        .falling-object.out-of-view {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .sphere {
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #FF4500, #DC143C);
+        }
+        
+        .cube {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+        }
+        
+        .cylinder {
+            border-radius: 50px;
+            background: linear-gradient(to bottom, #9370DB, #663399);
+        }
+        
+        .cone {
+            width: 0 !important;
+            height: 0 !important;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #FF6347;
+            background: none !important;
+            box-shadow: none !important;
+        }
+        
+        .force-vector {
+            position: absolute;
+            pointer-events: none;
+            z-index: 20;
+        }
+        
+        .vector-arrow {
+            position: relative;
+            width: 5px;
+            transform-origin: 50% 0;
+        }
+        
+        .vector-arrow::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 10px solid;
+            transform: translateX(-50%);
+        }
+        
+        .gravity-vector .vector-arrow {
+            background: #DC143C;
+        }
+        .gravity-vector .vector-arrow::after {
+            border-top-color: #DC143C;
+        }
+        
+        .drag-vector .vector-arrow {
+            background: #1E90FF;
+        }
+        .drag-vector .vector-arrow::after {
+            border-top-color: #1E90FF;
+            transform: translateX(-50%) rotate(180deg);
+            bottom: auto;
+            top: -10px;
+        }
+        
+        .net-vector .vector-arrow {
+            background: #32CD32;
+            width: 7px;
+        }
+        .net-vector .vector-arrow::after {
+            border-top-color: #32CD32;
+            border-left-width: 8px;
+            border-right-width: 8px;
+            border-top-width: 12px;
+            bottom: -12px;
+        }
+        
+        .force-label {
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            white-space: nowrap;
+        }
+        
+        /* Limit Hız Uyarısı */
+        .terminal-warning {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(34, 139, 34, 0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            min-width: 120px;
+        }
+        
+        .terminal-warning.show {
+            opacity: 1;
+        }
+        
+        /* Hızölçer */
+        .speedometer {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            width: 90px;
+            height: 90px;
+            border: 3px solid #1E90FF;
+            border-radius: 50%;
+            background: radial-gradient(circle, #2F4F4F, #1C3A3A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 25;
+        }
+        
+        .speed-needle {
+            position: absolute;
+            width: 2px;
+            height: 35px;
+            background: #DC143C;
+            transform-origin: bottom center;
+            border-radius: 1px;
+            transition: transform 0.2s ease;
+        }
+        
+        .speed-display {
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 18px;
+        }
+        
+        /* Derinlik Sayacı */
+        .depth-counter {
+            position: absolute;
+            top: 185px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #DC143C;
+            font-weight: bold;
+            color: #2F4F4F;
+            z-index: 25;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        /* Dijital Süre Ölçer - Derinlik Sayacının Altında */
+        .digital-timer {
+            position: absolute;
+            top: 270px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00FF00;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #00FF00;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 25;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .timer-label {
+            font-size: 10px;
+            color: #00DD00;
+            margin-bottom: 2px;
+        }
+        
+        .out-of-view-alert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(220, 20, 60, 0.95);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .out-of-view-alert.show {
+            opacity: 1;
+        }
+        
+        .velocity-graph {
+            width: 100%;
+            height: 200px;
+            border: 2px solid #1E90FF;
+            border-radius: 8px;
+            background: white;
+            margin-top: 10px;
+        }
+        
+        .graph-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2F4F4F;
+            margin-bottom: 8px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .control-group h3 {
+            color: #2F4F4F;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border-bottom: 2px solid #1E90FF;
+            padding-bottom: 4px;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 6px;
+            color: #2F4F4F;
+            font-weight: 500;
+            font-size: 12px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: #E6F3FF;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #1E90FF;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .btn {
+            padding: 6px 10px;
+            border: 2px solid #1E90FF;
+            background: white;
+            color: #1E90FF;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .btn.active {
+            background: #1E90FF;
+            color: white;
+        }
+        
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(30, 144, 255, 0.2);
+            font-size: 13px;
+        }
+        
+        .analysis-value {
+            font-weight: 600;
+            color: #1E90FF;
+        }
+        
+        .surface-area-info {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #2F4F4F;
+        }
+        
+        .reset-btn {
+            width: 100%;
+            padding: 8px;
+            background: #DC143C;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .reset-btn:hover {
+            background: #B71C1C;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+            }
+            
+            .left-analysis-panel {
+                grid-column: 1;
+                grid-row: 1;
+                flex-direction: row;
+                height: 200px;
+            }
+            
+            .simulation-area {
+                grid-column: 1;
+                grid-row: 2;
+            }
+            
+            .control-panel {
+                grid-column: 1;
+                grid-row: 3;
+                height: 200px;
+            }
+            
+            .terminal-warning {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .speedometer {
+                top: 50px;
+                right: 10px;
+                width: 70px;
+                height: 70px;
+            }
+            
+            .depth-counter {
+                top: 130px;
+                right: 10px;
+                min-width: 100px;
+            }
+            
+            .digital-timer {
+                top: 190px;
+                right: 10px;
+                min-width: 100px;
+                font-size: 14px;
+            }
+            
+            .velocity-graph {
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Sol Panel: Düşüş Analizi ve Grafik -->
+        <div class="left-analysis-panel">
+            <!-- Düşüş Analizi - Sadeleştirilmiş -->
+            <div class="motion-analysis">
+                <h3 style="color: #2F4F4F; margin-bottom: 12px; font-size: 16px;">📊 Fiziksel Büyüklükler</h3>
+                <div class="analysis-item">
+                    <span>Kesit Alanı:</span>
+                    <span class="analysis-value" id="crossSectionArea">0.20 m²</span>
+                </div>
+                <div class="analysis-item">
+                    <span>Yerçekimi Kuvveti:</span>
+                    <span class="analysis-value" id="gravityForce">4.9 N</span>
+                </div>
+                <div class="analysis-item">
+                    <span>Hava Direnci:</span>
+                    <span class="analysis-value" id="dragForce">0.0 N</span>
+                </div>
+                <div class="analysis-item">
+                    <span>Net Kuvvet:</span>
+                    <span class="analysis-value" id="netForce">4.9 N</span>
+                </div>
+                <div class="analysis-item">
+                    <span>İvme:</span>
+                    <span class="analysis-value" id="acceleration">9.8 m/s²</span>
+                </div>
+                <div class="analysis-item">
+                    <span>Limit Hız:</span>
+                    <span class="analysis-value" id="terminalVel">25.4 m/s</span>
+                </div>
+            </div>
+            
+            <!-- Hız-Zaman Grafiği -->
+            <div class="velocity-graph-container">
+                <div class="graph-title">⚡ Hız-Zaman Grafiği</div>
+                <canvas class="velocity-graph" id="velocityGraph"></canvas>
+            </div>
+        </div>
+        
+        <!-- Orta Panel: Ana Simülasyon Alanı -->
+        <div class="simulation-area">
+            <div class="continuous-tunnel" id="tunnel">
+                <div class="depth-indicator">Derinlik: <span id="depthDisplay">0 m</span></div>
+                <div class="falling-object sphere" id="fallingObject"></div>
+                
+                <!-- Kuvvet Vektörleri -->
+                <div class="force-vector gravity-vector" id="gravityVector">
+                    <div class="vector-arrow"></div>
+                    <div class="force-label">mg</div>
+                </div>
+                <div class="force-vector drag-vector" id="dragVector">
+                    <div class="vector-arrow"></div>
+                    <div class="force-label">Fd</div>
+                </div>
+                <div class="force-vector net-vector" id="netVector">
+                    <div class="vector-arrow"></div>
+                    <div class="force-label">ΣF</div>
+                </div>
+            </div>
+            
+            <div class="out-of-view-alert" id="outOfViewAlert">
+                📉 Cisim Görünürlük Alanının Dışında<br>
+                <small>Fizik hesaplamaları devam ediyor...</small>
+            </div>
+            
+            <!-- Terminal Hız Uyarısı -->
+            <div class="terminal-warning" id="terminalWarning">
+                ⚡ Limit Hıza Ulaşıldı<br>
+                <small>Sabit Hızda Düşüyor</small>
+            </div>
+            
+            <!-- Hızölçer -->
+            <div class="speedometer">
+                <div class="speed-needle" id="speedNeedle"></div>
+                <div class="speed-display">
+                    <div id="currentSpeed">0.0</div>
+                    <div style="font-size: 9px;">m/s</div>
+                </div>
+            </div>
+            
+            <!-- Derinlik Sayacı -->
+            <div class="depth-counter">
+                <div style="font-size: 11px; color: #666;">Düşüş Derinliği</div>
+                <div id="totalDepth" style="font-size: 16px;">0.0 m</div>
+            </div>
+            
+            <!-- Dijital Süre Ölçer - YENİ -->
+            <div class="digital-timer">
+                <div class="timer-label">SÜRE</div>
+                <div id="digitalTimer">00:00.0</div>
+            </div>
+        </div>
+        
+        <!-- Sağ Panel: Kontrol Paneli -->
+        <div class="control-panel">
+            <div class="control-group">
+                <h3>🌊 Akışkan</h3>
+                <div class="button-group">
+                    <button class="btn active" data-fluid="air">Hava</button>
+                    <button class="btn" data-fluid="water">Su</button>
+                    <button class="btn" data-fluid="oil">Yağ</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>💨 Rüzgar</h3>
+                <div class="slider-container">
+                    <label>Yukarı Hız: <span id="windSpeed">0.0</span> m/s</label>
+                    <input type="range" class="slider" id="windSlider" min="0" max="20" step="0.5" value="0">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📐 Cisim Özellikleri</h3>
+                <div class="slider-container">
+                    <label>Yüzey Alanı: <span id="surfaceAreaValue">0.20</span> m²</label>
+                    <input type="range" class="slider" id="surfaceAreaSlider" min="0.05" max="1.50" step="0.01" value="0.20">
+                </div>
+                <div class="slider-container">
+                    <label>Kütle: <span id="massValue">0.5</span> kg</label>
+                    <input type="range" class="slider" id="massSlider" min="0.1" max="2.0" step="0.1" value="0.5">
+                </div>
+                <div class="button-group">
+                    <button class="btn active" data-shape="sphere">Küre</button>
+                    <button class="btn" data-shape="cube">Küp</button>
+                    <button class="btn" data-shape="cylinder">Silindir</button>
+                    <button class="btn" data-shape="cone">Koni</button>
+                </div>
+                
+                <div class="surface-area-info">
+                    <strong>💡 Yüzey Alanı Örnekleri:</strong><br>
+                    • Tenis topu: ~0.027 m²<br>
+                    • Basketbol: ~0.048 m²<br>
+                    • Paraşüt: ~25-50 m²<br>
+                    • Büyük şemsiye: ~1.0 m²
+                </div>
+            </div>
+            
+            <button class="reset-btn" id="resetBtn">🔄 Sıfırla</button>
+        </div>
+    </div>
+
+    <script>
+        class CleanSurfaceAreaSimulation {
+            constructor() {
+                // Fiziksel parametreler
+                this.upwardWindSpeed = 0.0;
+                this.surfaceArea = 0.20;
+                this.mass = 0.5;
+                this.currentShape = 'sphere';
+                this.currentFluid = 'air';
+                
+                // Hareket değişkenleri
+                this.velocity = 0.0;
+                this.absolutePosition = 0.0;
+                this.visualPosition = 0.0;
+                this.time = 0.0;
+                this.isTerminalReached = false;
+                this.isOutOfView = false;
+                
+                // Grafik verileri
+                this.velocityData = [];
+                this.timeData = [];
+                this.maxDataPoints = 300;
+                
+                // Sabitler
+                this.gravity = 9.81;
+                this.dt = 0.032;
+                this.viewHeight = 100.0;
+                this.terminalTolerance = 0.5;
+                
+                // Akışkan özellikleri
+                this.fluids = {
+                    air: { density: 1.225, viscosity: 1.81e-5, name: 'Hava' },
+                    water: { density: 1000, viscosity: 1.002e-3, name: 'Su' },
+                    oil: { density: 860, viscosity: 0.1, name: 'Yağ' }
+                };
+                
+                // Sürüklenme katsayıları
+                this.dragCoefficients = {
+                    sphere: 0.47,
+                    cube: 1.05,
+                    cylinder: 0.82,
+                    cone: 0.50
+                };
+                
+                this.initElements();
+                this.setupEventListeners();
+                this.initGraph();
+                this.resetSimulation();
+                this.startSimulation();
+            }
+            
+            initElements() {
+                this.fallingObject = document.getElementById('fallingObject');
+                this.tunnel = document.getElementById('tunnel');
+                this.speedNeedle = document.getElementById('speedNeedle');
+                this.terminalWarning = document.getElementById('terminalWarning');
+                this.outOfViewAlert = document.getElementById('outOfViewAlert');
+                
+                // Kuvvet vektörleri
+                this.gravityVector = document.getElementById('gravityVector');
+                this.dragVector = document.getElementById('dragVector');
+                this.netVector = document.getElementById('netVector');
+                
+                // Grafik
+                this.velocityCanvas = document.getElementById('velocityGraph');
+                this.velocityCtx = this.velocityCanvas.getContext('2d');
+            }
+            
+            initGraph() {
+                const rect = this.velocityCanvas.getBoundingClientRect();
+                this.velocityCanvas.width = rect.width * window.devicePixelRatio;
+                this.velocityCanvas.height = rect.height * window.devicePixelRatio;
+                this.velocityCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                
+                this.graphWidth = rect.width - 50;
+                this.graphHeight = rect.height - 40;
+                this.graphOffsetX = 35;
+                this.graphOffsetY = 15;
+            }
+            
+            setupEventListeners() {
+                // Akışkan seçimi
+                document.querySelectorAll('[data-fluid]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-fluid]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentFluid = e.target.dataset.fluid;
+                        this.updateEnvironment();
+                        this.resetSimulation();
+                    });
+                });
+                
+                // Rüzgar hızı
+                document.getElementById('windSlider').addEventListener('input', (e) => {
+                    this.upwardWindSpeed = parseFloat(e.target.value);
+                    document.getElementById('windSpeed').textContent = this.upwardWindSpeed.toFixed(1);
+                });
+                
+                // Yüzey alanı kontrolü
+                document.getElementById('surfaceAreaSlider').addEventListener('input', (e) => {
+                    this.surfaceArea = parseFloat(e.target.value);
+                    document.getElementById('surfaceAreaValue').textContent = this.surfaceArea.toFixed(2);
+                    this.updateObjectVisualFromArea();
+                    this.resetSimulation();
+                });
+                
+                // Kütle
+                document.getElementById('massSlider').addEventListener('input', (e) => {
+                    this.mass = parseFloat(e.target.value);
+                    document.getElementById('massValue').textContent = this.mass.toFixed(1);
+                    this.resetSimulation();
+                });
+                
+                // Şekil
+                document.querySelectorAll('[data-shape]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-shape]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentShape = e.target.dataset.shape;
+                        this.updateObjectVisualFromArea();
+                        this.resetSimulation();
+                    });
+                });
+                
+                // Sıfırlama
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetSimulation();
+                });
+                
+                window.addEventListener('resize', () => {
+                    this.initGraph();
+                });
+            }
+            
+            updateObjectVisualFromArea() {
+                this.fallingObject.className = `falling-object ${this.currentShape}`;
+                
+                const equivalentRadius = Math.sqrt(this.surfaceArea / Math.PI);
+                const pixelSize = equivalentRadius * 200;
+                
+                if (this.currentShape === 'cone') {
+                    this.fallingObject.style.borderLeftWidth = (pixelSize * 0.5) + 'px';
+                    this.fallingObject.style.borderRightWidth = (pixelSize * 0.5) + 'px';
+                    this.fallingObject.style.borderTopWidth = pixelSize + 'px';
+                } else {
+                    this.fallingObject.style.width = pixelSize + 'px';
+                    this.fallingObject.style.height = pixelSize + 'px';
+                }
+            }
+            
+            updateEnvironment() {
+                this.tunnel.className = `continuous-tunnel ${this.currentFluid}`;
+            }
+            
+            calculatePhysics() {
+                const fluid = this.fluids[this.currentFluid];
+                const Cd = this.dragCoefficients[this.currentShape];
+                const area = this.surfaceArea;
+                
+                // Kuvvetler
+                const weight = this.mass * this.gravity;
+                
+                // Göreceli hız
+                const relativeVelocity = this.velocity + this.upwardWindSpeed;
+                
+                // Sürüklenme kuvveti
+                const dragMagnitude = 0.5 * fluid.density * Math.pow(Math.abs(relativeVelocity), 2) * Cd * area;
+                const dragForce = -Math.sign(relativeVelocity) * dragMagnitude;
+                
+                // Net kuvvet
+                const netForce = weight + dragForce;
+                
+                // İvme
+                const acceleration = netForce / this.mass;
+                
+                // Terminal hız
+                const terminalVelocity = Math.sqrt((2 * weight) / (fluid.density * Cd * area)) - this.upwardWindSpeed;
+                
+                return {
+                    weight,
+                    dragForce: Math.abs(dragForce),
+                    netForce,
+                    acceleration,
+                    terminalVelocity: Math.max(0, terminalVelocity),
+                    crossSectionArea: area
+                };
+            }
+            
+            updatePhysics() {
+                this.time += this.dt;
+                
+                const physics = this.calculatePhysics();
+                
+                // Hızı güncelle
+                this.velocity += physics.acceleration * this.dt;
+                
+                // Gerçek pozisyonu güncelle
+                this.absolutePosition += Math.abs(this.velocity) * this.dt;
+                
+                // Görsel pozisyonu hesapla
+                this.visualPosition = (this.absolutePosition % this.viewHeight) / this.viewHeight * 100;
+                
+                // Görünürlük kontrolü
+                const wasOutOfView = this.isOutOfView;
+                this.isOutOfView = this.absolutePosition > this.viewHeight;
+                
+                if (!wasOutOfView && this.isOutOfView) {
+                    this.outOfViewAlert.classList.add('show');
+                    setTimeout(() => {
+                        this.outOfViewAlert.classList.remove('show');
+                    }, 4000);
+                }
+                
+                // Terminal hız kontrolü
+                if (!this.isTerminalReached && Math.abs(physics.acceleration) < this.terminalTolerance) {
+                    this.isTerminalReached = true;
+                    this.terminalWarning.classList.add('show');
+                    
+                    setTimeout(() => {
+                        this.terminalWarning.classList.remove('show');
+                    }, 5000);
+                }
+                
+                // Grafik verilerini güncelle
+                this.updateGraphData();
+                
+                return physics;
+            }
+            
+            updateGraphData() {
+                this.timeData.push(this.time);
+                this.velocityData.push(Math.abs(this.velocity));
+                
+                if (this.timeData.length > this.maxDataPoints) {
+                    this.timeData.shift();
+                    this.velocityData.shift();
+                }
+            }
+            
+            // Dijital süre ölçer formatı
+            formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                const decimals = Math.floor((seconds % 1) * 10);
+                return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${decimals}`;
+            }
+            
+            drawGraph() {
+                const ctx = this.velocityCtx;
+                const canvas = this.velocityCanvas;
+                
+                ctx.clearRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+                
+                if (this.timeData.length < 2) return;
+                
+                // Grafik çerçevesi
+                ctx.strokeStyle = '#E0E0E0';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(this.graphOffsetX, this.graphOffsetY, this.graphWidth, this.graphHeight);
+                
+                const maxTime = Math.max(10, Math.max(...this.timeData));
+                const maxVelocity = Math.max(10, Math.max(...this.velocityData));
+                
+                // Y ekseni çizgileri
+                ctx.strokeStyle = '#F0F0F0';
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i <= 4; i++) {
+                    const y = this.graphOffsetY + (i / 4) * this.graphHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(this.graphOffsetX, y);
+                    ctx.lineTo(this.graphOffsetX + this.graphWidth, y);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#666';
+                    ctx.font = '9px Arial';
+                    ctx.textAlign = 'right';
+                    const value = maxVelocity * (1 - i / 4);
+                    ctx.fillText(value.toFixed(1), this.graphOffsetX - 3, y + 3);
+                }
+                
+                // X ekseni etiketleri
+                ctx.textAlign = 'center';
+                for (let i = 0; i <= 4; i++) {
+                    const x = this.graphOffsetX + (i / 4) * this.graphWidth;
+                    const value = maxTime * (i / 4);
+                    ctx.fillText(value.toFixed(1), x, this.graphOffsetY + this.graphHeight + 12);
+                }
+                
+                // Eksen başlıkları
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Zaman (s)', this.graphOffsetX + this.graphWidth / 2, this.graphOffsetY + this.graphHeight + 25);
+                
+                ctx.save();
+                ctx.translate(12, this.graphOffsetY + this.graphHeight / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Hız (m/s)', 0, 0);
+                ctx.restore();
+                
+                // Terminal hız çizgisi
+                const physics = this.calculatePhysics();
+                if (physics.terminalVelocity > 0) {
+                    const terminalY = this.graphOffsetY + this.graphHeight * (1 - physics.terminalVelocity / maxVelocity);
+                    ctx.strokeStyle = '#FF6B6B';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(this.graphOffsetX, terminalY);
+                    ctx.lineTo(this.graphOffsetX + this.graphWidth, terminalY);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    ctx.fillStyle = '#FF6B6B';
+                    ctx.font = '9px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`Terminal: ${physics.terminalVelocity.toFixed(1)}`, this.graphOffsetX + 3, terminalY - 3);
+                }
+                
+                // Alan etkisi göstergesi
+                ctx.fillStyle = '#1E90FF';
+                ctx.font = '9px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`Alan: ${this.surfaceArea.toFixed(2)} m²`, this.graphOffsetX + 3, this.graphOffsetY + 15);
+                
+                // Hız eğrisi
+                if (this.timeData.length > 1) {
+                    ctx.strokeStyle = this.isTerminalReached ? '#32CD32' : '#1E90FF';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    for (let i = 0; i < this.timeData.length; i++) {
+                        const x = this.graphOffsetX + (this.timeData[i] / maxTime) * this.graphWidth;
+                        const y = this.graphOffsetY + this.graphHeight * (1 - this.velocityData[i] / maxVelocity);
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.stroke();
+                    
+                    // Son nokta
+                    const lastIndex = this.timeData.length - 1;
+                    const lastX = this.graphOffsetX + (this.timeData[lastIndex] / maxTime) * this.graphWidth;
+                    const lastY = this.graphOffsetY + this.graphHeight * (1 - this.velocityData[lastIndex] / maxVelocity);
+                    
+                    ctx.fillStyle = this.isTerminalReached ? '#32CD32' : '#1E90FF';
+                    ctx.beginPath();
+                    ctx.arc(lastX, lastY, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+            
+            updateVisuals(physics) {
+                // Cisim görünürlüğü kontrolü
+                if (this.isOutOfView) {
+                    this.fallingObject.classList.add('out-of-view');
+                } else {
+                    this.fallingObject.classList.remove('out-of-view');
+                    
+                    // Cisim pozisyonu
+                    const tunnelRect = this.tunnel.getBoundingClientRect();
+                    const pixelPosition = (this.visualPosition / 100) * (tunnelRect.height - 60);
+                    this.fallingObject.style.top = pixelPosition + 'px';
+                    
+                    // Kuvvet vektörleri
+                    this.updateForceVectors(physics);
+                }
+                
+                // Hızölçer
+                const speedPercent = Math.min(Math.abs(this.velocity) / 50, 1);
+                const angle = -90 + (speedPercent * 180);
+                this.speedNeedle.style.transform = `rotate(${angle}deg)`;
+                document.getElementById('currentSpeed').textContent = Math.abs(this.velocity).toFixed(1);
+                
+                // Derinlik göstergeleri
+                document.getElementById('totalDepth').textContent = this.absolutePosition.toFixed(1) + ' m';
+                document.getElementById('depthDisplay').textContent = Math.floor(this.absolutePosition) + ' m';
+                
+                // Dijital süre ölçer - YENİ
+                document.getElementById('digitalTimer').textContent = this.formatTime(this.time);
+                
+                // Sol panel analiz verileri - Sadeleştirilmiş
+                document.getElementById('crossSectionArea').textContent = this.surfaceArea.toFixed(3) + ' m²';
+                document.getElementById('gravityForce').textContent = physics.weight.toFixed(1) + ' N';
+                document.getElementById('dragForce').textContent = physics.dragForce.toFixed(1) + ' N';
+                document.getElementById('netForce').textContent = Math.abs(physics.netForce).toFixed(1) + ' N';
+                document.getElementById('acceleration').textContent = physics.acceleration.toFixed(1) + ' m/s²';
+                document.getElementById('terminalVel').textContent = physics.terminalVelocity.toFixed(1) + ' m/s';
+                
+                // Grafiği çiz
+                this.drawGraph();
+            }
+            
+            updateForceVectors(physics) {
+                const objRect = this.fallingObject.getBoundingClientRect();
+                const tunnelRect = this.tunnel.getBoundingClientRect();
+                
+                const centerX = objRect.left - tunnelRect.left + objRect.width / 2;
+                const centerY = objRect.top - tunnelRect.top + objRect.height / 2;
+                
+                const scale = 3;
+                
+                // Yerçekimi
+                this.gravityVector.style.left = (centerX - 2.5) + 'px';
+                this.gravityVector.style.top = centerY + 'px';
+                this.gravityVector.querySelector('.vector-arrow').style.height = (physics.weight * scale) + 'px';
+                this.gravityVector.querySelector('.force-label').style.left = '-20px';
+                this.gravityVector.querySelector('.force-label').style.top = (physics.weight * scale + 12) + 'px';
+                
+                // Hava direnci
+                this.dragVector.style.left = (centerX + 12) + 'px';
+                this.dragVector.style.top = (centerY - physics.dragForce * scale) + 'px';
+                this.dragVector.querySelector('.vector-arrow').style.height = (physics.dragForce * scale) + 'px';
+                this.dragVector.querySelector('.force-label').style.left = '12px';
+                this.dragVector.querySelector('.force-label').style.top = '-15px';
+                
+                // Net kuvvet
+                const netHeight = Math.abs(physics.netForce) * scale * 0.7;
+                this.netVector.style.left = (centerX - 15) + 'px';
+                if (physics.netForce > 0) {
+                    this.netVector.style.top = centerY + 'px';
+                    this.netVector.querySelector('.vector-arrow').style.height = netHeight + 'px';
+                    this.netVector.querySelector('.vector-arrow').style.transform = 'none';
+                    this.netVector.querySelector('.force-label').style.top = (netHeight + 12) + 'px';
+                } else {
+                    this.netVector.style.top = (centerY - netHeight) + 'px';
+                    this.netVector.querySelector('.vector-arrow').style.height = netHeight + 'px';
+                    this.netVector.querySelector('.vector-arrow').style.transform = 'rotate(180deg)';
+                    this.netVector.querySelector('.force-label').style.top = '-15px';
+                }
+                this.netVector.querySelector('.force-label').style.left = '-25px';
+            }
+            
+            resetSimulation() {
+                this.velocity = 0.0;
+                this.absolutePosition = 0.0;
+                this.visualPosition = 0.0;
+                this.time = 0.0;
+                this.isTerminalReached = false;
+                this.isOutOfView = false;
+                
+                // Grafik verilerini temizle
+                this.velocityData = [];
+                this.timeData = [];
+                
+                // UI elementlerini sıfırla
+                this.fallingObject.style.top = '0px';
+                this.fallingObject.classList.remove('out-of-view');
+                this.terminalWarning.classList.remove('show');
+                this.outOfViewAlert.classList.remove('show');
+                
+                this.speedNeedle.style.transform = 'rotate(-90deg)';
+                document.getElementById('currentSpeed').textContent = '0.0';
+                document.getElementById('totalDepth').textContent = '0.0 m';
+                document.getElementById('depthDisplay').textContent = '0 m';
+                document.getElementById('digitalTimer').textContent = '00:00.0';
+            }
+            
+            startSimulation() {
+                this.updateObjectVisualFromArea();
+                this.updateEnvironment();
+                
+                const animate = () => {
+                    const physics = this.updatePhysics();
+                    this.updateVisuals(physics);
+                    
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+        }
+        
+        // Simülasyonu başlat
+        document.addEventListener('DOMContentLoaded', () => {
+            new CleanSurfaceAreaSimulation();
+        });
+    </script>
+</body>
+</html>
