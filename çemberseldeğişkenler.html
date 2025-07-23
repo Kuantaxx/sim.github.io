@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çembersel Hareket Simülasyonu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .simulation-area {
+            position: relative;
+            margin: 20px auto;
+            border: 3px solid #4a5568;
+            border-radius: 15px;
+            background: #f7fafc;
+            overflow: hidden;
+        }
+
+        #canvas {
+            display: block;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .measurement-tools {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .tool-button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        .tool-button:hover {
+            background: #3182ce;
+            transform: translateY(-1px);
+        }
+
+        .tool-button.active {
+            background: #e53e3e;
+        }
+
+        .right-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+            min-width: 200px;
+        }
+
+        .control-panel {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .stopwatch-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .control-btn.primary {
+            background: #ed8936;
+            font-size: 1rem;
+            padding: 10px 20px;
+        }
+
+        .control-btn.reset {
+            background: #e53e3e;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .system-controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #4299e1;
+        }
+
+        .system-controls h4 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .system-sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .slider-group label {
+            font-size: 0.8rem;
+            color: #2d3748;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #cbd5e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .manual-measurements {
+            background: #fef5e7;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border: 3px solid #ed8936;
+        }
+
+        .manual-measurements h3 {
+            color: #c05621;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3rem;
+        }
+
+        .manual-input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .manual-input {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ed8936;
+            box-shadow: 0 2px 8px rgba(237, 137, 54, 0.2);
+        }
+
+        .manual-input label {
+            font-weight: bold;
+            color: #744210;
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .manual-input input {
+            width: 90px;
+            padding: 10px;
+            border: 2px solid #ed8936;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .manual-input input:focus {
+            outline: none;
+            border-color: #dd6b20;
+            box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.2);
+        }
+
+        .calculate-btn {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(237, 137, 54, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #cbd5e0;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            font-weight: bold;
+        }
+
+        .error-cell {
+            background: #fed7d7;
+            color: #c53030;
+            font-weight: bold;
+        }
+
+        .good-cell {
+            background: #c6f6d5;
+            color: #2f855a;
+            font-weight: bold;
+        }
+
+        .warning-cell {
+            background: #fefcbf;
+            color: #d69e2e;
+            font-weight: bold;
+        }
+
+        /* Popup Styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .popup-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .popup-header h2 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .popup-steps {
+            color: #4a5568;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .popup-steps ol {
+            padding-left: 20px;
+        }
+
+        .popup-steps li {
+            margin-bottom: 10px;
+        }
+
+        .popup-close {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        .popup-close:hover {
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .right-panel {
+                position: static;
+                margin-bottom: 10px;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+            
+            .measurement-tools {
+                position: static;
+                flex-direction: row;
+                margin-bottom: 10px;
+            }
+
+            .manual-input-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .system-sliders {
+                flex-direction: row;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Popup Talimatlar -->
+    <div class="popup-overlay" id="instructionsPopup">
+        <div class="popup-content">
+           
+                        <div class="popup-steps">
+                <h3>📋 Yönergeler:</h3>
+                <ol>
+                    <li><strong>"▶️ Başlat"</strong> butonuna basın - Hem dönme hem süre ölçer başlayacaktır.</li>
+                    <li><strong>"📏 Uzunluk Ölçer"</strong> butonuna basıp cetveli aktif ediniz.</li>
+                    <li><strong>Cetveli sürükleyip</strong> döndürerek yarıçapı ölçünüz.</li>
+                    <li><strong>Süre ölçerle</strong> periyodu ölçünüz.</li>
+                    <li><strong>Diğer değerleri hesaplayın</strong> ve ölçüm alanına giriniz.</li>
+                    <li><strong>"Hesapla ve Karşılaştır"</strong> butonuna basarak sonuçları görünüz.</li>
+					<p><strong>🎯 Hedef:</strong> Ölçümlerinizin %5'ten az hata ile gerçek değerlere yakın olması!</p>
+                </ol>
+                                
+            </div>
+            
+            <button class="popup-close" onclick="closeInstructions()">Deneye Başla! 🚀</button>
+        </div>
+    </div>
+
+    <div class="container">             
+        <div class="simulation-area">
+            <div class="measurement-tools">
+                <button class="tool-button" id="rulerBtn" onclick="toggleRuler()">📏 Uzunluk Ölçer</button>
+                <button class="tool-button" onclick="resetMeasurements()">🗑️ Temizle</button>
+                <button class="tool-button" onclick="showInstructions()">❓ Yardım</button>
+            </div>
+
+            <!-- Sağ Panel: Süre Ölçer + Sistem Ayarları -->
+            <div class="right-panel">
+                <div class="control-panel">
+                    <div class="stopwatch-display" id="stopwatchDisplay">00:00.00</div>
+                    <div class="control-buttons">
+                        <button class="control-btn primary" onclick="toggleAnimation()">▶️ Başlat</button>
+                        <button class="control-btn reset" onclick="resetStopwatch()">🔄 Sıfırla</button>
+                    </div>
+                </div>
+
+                <div class="system-controls">
+                    <h4>⚙️ Sistem Ayarları</h4>
+                    <div class="system-sliders">
+                        <div class="slider-group">
+                            <label>Yarıçap Ayarı</label>
+                            <input type="range" id="radiusSlider" min="0.5" max="2.5" step="0.1" value="1.5">
+                        </div>
+                        <div class="slider-group">
+                            <label>Dönme Hızı Ayarı</label>
+                            <input type="range" id="speedSlider" min="0.5" max="8" step="0.1" value="2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <canvas id="canvas" width="700" height="500"></canvas>
+        </div>
+
+        <div class="manual-measurements">
+            <h3>📊 Ölçümlerinizi Girin</h3>
+            <div class="manual-input-grid">
+                <div class="manual-input">
+                    <label>Yarıçap<br>(r) [m]</label>
+                    <input type="number" id="manualRadius" step="0.01" placeholder="0.00">
+                </div>
+                <div class="manual-input">
+                    <label>Frekans<br>(f) [Hz]</label>
+                    <input type="number" id="manualFrequency" step="0.01" placeholder="0.00">
+                </div>
+                <div class="manual-input">
+                    <label>Periyot<br>(T) [s]</label>
+                    <input type="number" id="manualPeriod" step="0.01" placeholder="0.00">
+                </div>
+                <div class="manual-input">
+                    <label>Çizgisel Hız<br>(v) [m/s]</label>
+                    <input type="number" id="manualLinearSpeed" step="0.01" placeholder="0.00">
+                </div>
+                <div class="manual-input">
+                    <label>Açısal Hız<br>(ω) [rad/s]</label>
+                    <input type="number" id="manualAngularSpeed" step="0.01" placeholder="0.00">
+                </div>
+            </div>
+            <button class="calculate-btn" onclick="calculateAndCompare()">📋 Hesapla ve Karşılaştır</button>
+            
+            <table class="comparison-table" id="comparisonTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Fiziksel Büyüklük</th>
+                        <th>Gerçek Değer</th>
+                        <th>Ölçülen Değer</th>
+                        <th>Hata (%)</th>
+                        <th>Değerlendirme</th>
+                    </tr>
+                </thead>
+                <tbody id="comparisonBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Responsive canvas
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = Math.min(700, container.clientWidth - 40);
+            canvas.height = Math.min(500, canvas.width * 5/7);
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Simulation variables
+        let isAnimating = false;
+        let angle = 0;
+        let animationId;
+        let lastTime = 0;
+        let center;
+        
+        // Physics parameters
+        let radius = 1.5;
+        let angularSpeed = 2;
+        let scale = 80;
+
+        // Measurement tools
+        let rulerActive = false;
+        let rulerPos = { x: 100, y: 100 };
+        let rulerAngle = 0;
+        let rulerLength = 200;
+        let isDraggingRuler = false;
+        let isRotatingRuler = false;
+        let dragOffset = { x: 0, y: 0 };
+
+        // Stopwatch variables
+        let stopwatchRunning = false;
+        let stopwatchStartTime = 0;
+        let stopwatchElapsed = 0;
+        let stopwatchInterval;
+
+        // UI elements
+        const radiusSlider = document.getElementById('radiusSlider');
+        const speedSlider = document.getElementById('speedSlider');
+        const rulerBtn = document.getElementById('rulerBtn');
+
+        function updateCenter() {
+            center = {
+                x: canvas.width / 2,
+                y: canvas.height / 2
+            };
+        }
+
+        function drawRuler() {
+            if (!rulerActive) return;
+
+            ctx.save();
+            ctx.translate(rulerPos.x, rulerPos.y);
+            ctx.rotate(rulerAngle);
+
+            // Ruler body
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.fillRect(-rulerLength/2, -15, rulerLength, 30);
+            ctx.strokeStyle = '#2d3748';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-rulerLength/2, -15, rulerLength, 30);
+
+            // Ruler markings
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= rulerLength; i += 10) {
+                const x = -rulerLength/2 + i;
+                const height = (i % 50 === 0) ? 12 : (i % 20 === 0) ? 8 : 4;
+                ctx.beginPath();
+                ctx.moveTo(x, -15);
+                ctx.lineTo(x, -15 + height);
+                ctx.stroke();
+            }
+
+            // Scale labels
+            ctx.fillStyle = '#2d3748';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= rulerLength; i += 50) {
+                const x = -rulerLength/2 + i;
+                const meters = (i / scale).toFixed(1);
+                ctx.fillText(meters + 'm', x, 10);
+            }
+
+            // Rotation handle
+            ctx.beginPath();
+            ctx.arc(rulerLength/2 + 15, 0, 8, 0, 2 * Math.PI);
+            ctx.fillStyle = '#e53e3e';
+            ctx.fill();
+            ctx.strokeStyle = '#c53030';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawSimulation() {
+            updateCenter();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw circular path
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius * scale, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#a0aec0';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw center point
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2d3748';
+            ctx.fill();
+
+            // Calculate object position
+            const objX = center.x + Math.cos(angle) * radius * scale;
+            const objY = center.y + Math.sin(angle) * radius * scale;
+
+            // Draw string/rope
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y);
+            ctx.lineTo(objX, objY);
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw rotating object
+            ctx.beginPath();
+            ctx.arc(objX, objY, 12, 0, 2 * Math.PI);
+            ctx.fillStyle = '#e53e3e';
+            ctx.fill();
+            ctx.strokeStyle = '#c53030';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw velocity vector
+            const velocityScale = 30;
+            const vx = -Math.sin(angle) * angularSpeed * velocityScale;
+            const vy = Math.cos(angle) * angularSpeed * velocityScale;
+            
+            ctx.beginPath();
+            ctx.moveTo(objX, objY);
+            ctx.lineTo(objX + vx, objY + vy);
+            ctx.strokeStyle = '#3182ce';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Arrow head for velocity vector
+            const arrowSize = 8;
+            const arrowAngle = Math.atan2(vy, vx);
+            ctx.beginPath();
+            ctx.moveTo(objX + vx, objY + vy);
+            ctx.lineTo(objX + vx - arrowSize * Math.cos(arrowAngle - Math.PI/6), 
+                      objY + vy - arrowSize * Math.sin(arrowAngle - Math.PI/6));
+            ctx.moveTo(objX + vx, objY + vy);
+            ctx.lineTo(objX + vx - arrowSize * Math.cos(arrowAngle + Math.PI/6), 
+                      objY + vy - arrowSize * Math.sin(arrowAngle + Math.PI/6));
+            ctx.stroke();
+
+            // Draw ruler
+            drawRuler();
+
+            // Draw labels
+            ctx.fillStyle = '#2d3748';
+            ctx.font = '14px Segoe UI';
+            ctx.fillText('v', objX + vx + 10, objY + vy - 5);
+            ctx.fillText('r', center.x + Math.cos(angle) * radius * scale / 2 - 5, 
+                        center.y + Math.sin(angle) * radius * scale / 2 + 15);
+        }
+
+        function animate(currentTime) {
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            if (isAnimating) {
+                angle += angularSpeed * deltaTime;
+                if (angle > 2 * Math.PI) angle -= 2 * Math.PI;
+            }
+
+            drawSimulation();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            const btn = document.querySelector('.control-btn.primary');
+            
+            if (isAnimating) {
+                btn.textContent = '⏸️ Durdur';
+                startStopwatch();
+            } else {
+                btn.textContent = '▶️ Başlat';
+                stopStopwatch();
+            }
+        }
+
+        function toggleRuler() {
+            rulerActive = !rulerActive;
+            rulerBtn.textContent = rulerActive ? '📏 Gizle' : '📏 Uzunluk Ölçer';
+            rulerBtn.classList.toggle('active', rulerActive);
+            drawSimulation();
+        }
+
+        // Popup functions
+        function closeInstructions() {
+            document.getElementById('instructionsPopup').style.display = 'none';
+        }
+
+        function showInstructions() {
+            document.getElementById('instructionsPopup').style.display = 'flex';
+        }
+
+        // Stopwatch functions
+        function startStopwatch() {
+            if (!stopwatchRunning) {
+                stopwatchRunning = true;
+                stopwatchStartTime = Date.now() - stopwatchElapsed;
+                stopwatchInterval = setInterval(updateStopwatchDisplay, 10);
+            }
+        }
+
+        function stopStopwatch() {
+            if (stopwatchRunning) {
+                stopwatchRunning = false;
+                clearInterval(stopwatchInterval);
+            }
+        }
+
+        function resetStopwatch() {
+            stopwatchRunning = false;
+            stopwatchElapsed = 0;
+            clearInterval(stopwatchInterval);
+            document.getElementById('stopwatchDisplay').textContent = '00:00.00';
+            
+            isAnimating = false;
+            document.querySelector('.control-btn.primary').textContent = '▶️ Başlat';
+        }
+
+        function updateStopwatchDisplay() {
+            stopwatchElapsed = Date.now() - stopwatchStartTime;
+            const minutes = Math.floor(stopwatchElapsed / 60000);
+            const seconds = Math.floor((stopwatchElapsed % 60000) / 1000);
+            const centiseconds = Math.floor((stopwatchElapsed % 1000) / 10);
+            
+            document.getElementById('stopwatchDisplay').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+        }
+
+        function calculateAndCompare() {
+            const manualRadius = parseFloat(document.getElementById('manualRadius').value);
+            const manualFrequency = parseFloat(document.getElementById('manualFrequency').value);
+            const manualPeriod = parseFloat(document.getElementById('manualPeriod').value);
+            const manualLinearSpeed = parseFloat(document.getElementById('manualLinearSpeed').value);
+            const manualAngularSpeed = parseFloat(document.getElementById('manualAngularSpeed').value);
+
+            if (isNaN(manualRadius) || isNaN(manualFrequency) || isNaN(manualPeriod) || 
+                isNaN(manualLinearSpeed) || isNaN(manualAngularSpeed)) {
+                alert('Lütfen tüm değerleri giriniz!');
+                return;
+            }
+
+            // Calculate actual values
+            const actualPeriod = 2 * Math.PI / angularSpeed;
+            const actualFrequency = 1 / actualPeriod;
+            const actualLinearSpeed = angularSpeed * radius;
+
+            const comparisonData = [
+                { 
+                    variable: 'Yarıçap (r)', 
+                    unit: 'm',
+                    actual: radius.toFixed(3), 
+                    measured: manualRadius.toFixed(3), 
+                    error: Math.abs((manualRadius - radius) / radius * 100)
+                },
+                { 
+                    variable: 'Frekans (f)', 
+                    unit: 'Hz',
+                    actual: actualFrequency.toFixed(3), 
+                    measured: manualFrequency.toFixed(3), 
+                    error: Math.abs((manualFrequency - actualFrequency) / actualFrequency * 100)
+                },
+                { 
+                    variable: 'Periyot (T)', 
+                    unit: 's',
+                    actual: actualPeriod.toFixed(3), 
+                    measured: manualPeriod.toFixed(3), 
+                    error: Math.abs((manualPeriod - actualPeriod) / actualPeriod * 100)
+                },
+                { 
+                    variable: 'Çizgisel Hız (v)', 
+                    unit: 'm/s',
+                    actual: actualLinearSpeed.toFixed(3), 
+                    measured: manualLinearSpeed.toFixed(3), 
+                    error: Math.abs((manualLinearSpeed - actualLinearSpeed) / actualLinearSpeed * 100)
+                },
+                { 
+                    variable: 'Açısal Hız (ω)', 
+                    unit: 'rad/s',
+                    actual: angularSpeed.toFixed(3), 
+                    measured: manualAngularSpeed.toFixed(3), 
+                    error: Math.abs((manualAngularSpeed - angularSpeed) / angularSpeed * 100)
+                }
+            ];
+
+            const tbody = document.getElementById('comparisonBody');
+            tbody.innerHTML = '';
+
+            comparisonData.forEach(data => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = data.variable;
+                row.insertCell(1).textContent = data.actual + ' ' + data.unit;
+                row.insertCell(2).textContent = data.measured + ' ' + data.unit;
+                
+                const errorCell = row.insertCell(3);
+                errorCell.textContent = data.error.toFixed(1) + '%';
+                
+                const evaluationCell = row.insertCell(4);
+                
+                if (data.error < 5) {
+                    errorCell.className = 'good-cell';
+                    evaluationCell.textContent = '✅ Mükemmel';
+                    evaluationCell.className = 'good-cell';
+                } else if (data.error < 15) {
+                    errorCell.className = 'warning-cell';
+                    evaluationCell.textContent = '⚠️ İyi';
+                    evaluationCell.className = 'warning-cell';
+                } else {
+                    errorCell.className = 'error-cell';
+                    evaluationCell.textContent = '❌ Tekrar Dene';
+                    evaluationCell.className = 'error-cell';
+                }
+            });
+
+            document.getElementById('comparisonTable').style.display = 'table';
+        }
+
+        function resetMeasurements() {
+            document.getElementById('manualRadius').value = '';
+            document.getElementById('manualFrequency').value = '';
+            document.getElementById('manualPeriod').value = '';
+            document.getElementById('manualLinearSpeed').value = '';
+            document.getElementById('manualAngularSpeed').value = '';
+            document.getElementById('comparisonTable').style.display = 'none';
+            resetStopwatch();
+        }
+
+        // Mouse and touch event handlers
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function isPointInRuler(x, y) {
+            if (!rulerActive) return false;
+            
+            const dx = x - rulerPos.x;
+            const dy = y - rulerPos.y;
+            const rotatedX = dx * Math.cos(-rulerAngle) - dy * Math.sin(-rulerAngle);
+            const rotatedY = dx * Math.sin(-rulerAngle) + dy * Math.cos(-rulerAngle);
+            
+            return rotatedX >= -rulerLength/2 && rotatedX <= rulerLength/2 && 
+                   rotatedY >= -15 && rotatedY <= 15;
+        }
+
+        function isPointInRotationHandle(x, y) {
+            if (!rulerActive) return false;
+            
+            const handleX = rulerPos.x + Math.cos(rulerAngle) * (rulerLength/2 + 15);
+            const handleY = rulerPos.y + Math.sin(rulerAngle) * (rulerLength/2 + 15);
+            const dx = x - handleX;
+            const dy = y - handleY;
+            
+            return Math.sqrt(dx * dx + dy * dy) <= 8;
+        }
+
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('touchstart', startDrag);
+
+        function startDrag(e) {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            
+            if (isPointInRotationHandle(pos.x, pos.y)) {
+                isRotatingRuler = true;
+            } else if (isPointInRuler(pos.x, pos.y)) {
+                isDraggingRuler = true;
+                dragOffset.x = pos.x - rulerPos.x;
+                dragOffset.y = pos.y - rulerPos.y;
+            } else {
+                updateCenter();
+                const dx = pos.x - center.x;
+                const dy = pos.y - center.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (Math.abs(distance - radius * scale) < 30) {
+                    isAnimating = false;
+                    stopStopwatch();
+                    document.querySelector('.control-btn.primary').textContent = '▶️ Başlat';
+                }
+            }
+        }
+
+        canvas.addEventListener('mousemove', drag);
+        canvas.addEventListener('touchmove', drag);
+
+        function drag(e) {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            
+            if (isRotatingRuler) {
+                const dx = pos.x - rulerPos.x;
+                const dy = pos.y - rulerPos.y;
+                rulerAngle = Math.atan2(dy, dx);
+                drawSimulation();
+            } else if (isDraggingRuler) {
+                rulerPos.x = pos.x - dragOffset.x;
+                rulerPos.y = pos.y - dragOffset.y;
+                drawSimulation();
+            }
+        }
+
+        canvas.addEventListener('mouseup', stopDrag);
+        canvas.addEventListener('touchend', stopDrag);
+        canvas.addEventListener('mouseleave', stopDrag);
+
+        function stopDrag() {
+            isDraggingRuler = false;
+            isRotatingRuler = false;
+        }
+
+        // Event listeners for sliders
+        radiusSlider.addEventListener('input', (e) => {
+            radius = parseFloat(e.target.value);
+            drawSimulation();
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            angularSpeed = parseFloat(e.target.value);
+            drawSimulation();
+        });
+
+        // Initialize simulation
+        updateCenter();
+        drawSimulation();
+        animate();
+
+        // Show popup on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('instructionsPopup').style.display = 'flex';
+            }, 500);
+        });
+    </script>
+</body>
+</html>
