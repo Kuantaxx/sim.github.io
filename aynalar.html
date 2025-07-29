@@ -305,6 +305,9 @@
                         <option value="square">🟥 Kare</option>
                         <option value="triangle">🔺 Üçgen</option>
                         <option value="letter_e">📝 E Harfi</option>
+                        <option value="letter_a">📝 A Harfi</option>
+                        <option value="letter_c">📝 C Harfi</option>
+                        <option value="letter_d">📝 D Harfi</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -330,7 +333,6 @@
         </div>
         
         <div class="info-overlay">
-            <!-- YENİ SIRA: Ölçüm Araçları ÖNCE -->
             <div class="info-section">
                 <h4>📐 Ölçüm Araçları</h4>
                 <div class="measurement-control-group">
@@ -343,7 +345,6 @@
                 <button id="showExtensions" onclick="toggleExtensions()">Uzantılar: AÇIK</button>
             </div>
             
-            <!-- YENİ SIRA: Simülasyon Göstergeleri İKİNCİ -->
             <div class="info-section">
                 <h4>📋 Simülasyon Göstergeleri</h4>
                 <div class="legend-item">
@@ -380,7 +381,6 @@
                 </div>
             </div>
             
-            <!-- Durum Bilgileri ÜÇÜNCÜ -->
             <div class="info-section">
                 <h4>📊 Durum Bilgileri</h4>
                 <div class="status-item">
@@ -425,28 +425,24 @@
                 this.canvas = document.getElementById('mirrorCanvas');
                 this.ctx = this.canvas.getContext('2d');
                 
-                // Canvas boyutunu tam ekrana ayarla
                 this.resizeCanvas();
                 window.addEventListener('resize', () => this.resizeCanvas());
                 
-                // Ölçek: 1 cm = 8 piksel
                 this.scale = 8;
                 
-                // Canvas merkezini hesapla
                 this.centerX = this.pxToCm(this.canvas.width / 2);
                 this.centerY = this.pxToCm(this.canvas.height / 2);
                 
-                // Cisim aynanın sağında başlasın
                 this.mirror = { 
-                    x: this.centerX - 5,  // Ayna merkezden biraz solda
-                    y: this.centerY,      // Merkez yüksekliği  
-                    length: 35,           // 35 cm uzunluk
-                    angle: Math.PI / 2    // 90 derece (dikey)
+                    x: this.centerX - 5,
+                    y: this.centerY,
+                    length: 35,
+                    angle: Math.PI / 2
                 };
                 
                 this.object = { 
-                    x: this.centerX + 30, // Cisim aynanın sağında (merkez + 30cm)
-                    y: this.centerY,      // Merkez yüksekliği
+                    x: this.centerX + 30,
+                    y: this.centerY,
                     size: 4,
                     type: 'arrow',
                     rotation: 0
@@ -468,7 +464,6 @@
                     visible: false
                 };
                 
-                // Sabit 2 ışın + uzantılar açık
                 this.rayCount = 2;
                 this.showExtensions = true;
                 this.isDragging = false;
@@ -578,7 +573,6 @@
                 const mouse = this.getMousePos(e);
                 this.lastMouse = mouse;
                 
-                // Cisim kontrolü
                 const objDist = Math.sqrt(
                     Math.pow(mouse.x - this.object.x, 2) + 
                     Math.pow(mouse.y - this.object.y, 2)
@@ -590,7 +584,6 @@
                     return;
                 }
                 
-                // Cetvel kontrolü
                 if (this.ruler.visible) {
                     const rulerDist = this.distanceToRuler(mouse);
                     if (rulerDist < 2) {
@@ -601,7 +594,6 @@
                     }
                 }
                 
-                // Açı ölçer kontrolü
                 if (this.protractor.visible) {
                     const protractorDist = Math.sqrt(
                         Math.pow(mouse.x - this.protractor.x, 2) + 
@@ -621,7 +613,6 @@
                     }
                 }
                 
-                // Ayna kontrolü
                 const mirrorStart = {
                     x: this.mirror.x - Math.cos(this.mirror.angle) * this.mirror.length / 2,
                     y: this.mirror.y - Math.sin(this.mirror.angle) * this.mirror.length / 2
@@ -802,7 +793,6 @@
                 return null;
             }
             
-            // Ok çizme fonksiyonu
             drawArrow(fromX, fromY, toX, toY, color, lineWidth = 3) {
                 const dx = toX - fromX;
                 const dy = toY - fromY;
@@ -909,14 +899,12 @@
                 }
             }
             
-            // Tırtıklı ayna çizme fonksiyonu
             drawMirror() {
                 const startX = this.cmToPx(this.mirror.x - Math.cos(this.mirror.angle) * this.mirror.length / 2);
                 const startY = this.cmToPx(this.mirror.y - Math.sin(this.mirror.angle) * this.mirror.length / 2);
                 const endX = this.cmToPx(this.mirror.x + Math.cos(this.mirror.angle) * this.mirror.length / 2);
                 const endY = this.cmToPx(this.mirror.y + Math.sin(this.mirror.angle) * this.mirror.length / 2);
                 
-                // Ayna yüzeyi
                 const gradient = this.ctx.createLinearGradient(startX, startY, endX, endY);
                 gradient.addColorStop(0, '#E2E8F0');
                 gradient.addColorStop(0.3, '#CBD5E0');
@@ -931,7 +919,6 @@
                 this.ctx.lineTo(endX, endY);
                 this.ctx.stroke();
                 
-                // Ayna kenarı
                 this.ctx.strokeStyle = '#2D3748';
                 this.ctx.lineWidth = 3;
                 this.ctx.beginPath();
@@ -939,10 +926,8 @@
                 this.ctx.lineTo(endX, endY);
                 this.ctx.stroke();
                 
-                // Sol tarafa tırtık ekleme
                 this.drawMirrorNotches(startX, startY, endX, endY);
                 
-                // Merkez tutacağı
                 this.ctx.fillStyle = '#667EEA';
                 this.ctx.beginPath();
                 this.ctx.arc(this.cmToPx(this.mirror.x), this.cmToPx(this.mirror.y), 8, 0, 2 * Math.PI);
@@ -952,7 +937,6 @@
                 this.ctx.lineWidth = 2;
                 this.ctx.stroke();
                 
-                // Normal çizgisi
                 this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
                 this.ctx.lineWidth = 2;
                 this.ctx.setLineDash([5, 5]);
@@ -968,19 +952,16 @@
                 this.ctx.setLineDash([]);
             }
             
-            // Ayna tırtık çizme fonksiyonu
             drawMirrorNotches(startX, startY, endX, endY) {
                 const mirrorLength = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
                 const unitX = (endX - startX) / mirrorLength;
                 const unitY = (endY - startY) / mirrorLength;
                 
-                // Sol taraf normal vektörü
                 const leftNormalX = -unitY;
                 const leftNormalY = unitX;
                 
-                // Tırtık parametreleri
-                const notchSpacing = this.cmToPx(2); // 2 cm aralık
-                const notchLength = 8; // 8 piksel uzunluk
+                const notchSpacing = this.cmToPx(2);
+                const notchLength = 8;
                 const notchCount = Math.floor(mirrorLength / notchSpacing);
                 
                 this.ctx.strokeStyle = '#2D3748';
@@ -1055,15 +1036,64 @@
                         break;
                         
                     case 'letter_e':
-                        const lineWidth = size * 0.15;
-                        this.ctx.lineWidth = lineWidth;
+                        const eLineWidth = size * 0.15;
+                        this.ctx.lineWidth = eLineWidth;
                         this.ctx.strokeStyle = '#C53030';
                         this.ctx.fillStyle = gradient;
                         
-                        this.ctx.fillRect(-size * 0.8, -size * 0.8, lineWidth, size * 1.6);
-                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.4, lineWidth);
-                        this.ctx.fillRect(-size * 0.8, -lineWidth/2, size * 1.2, lineWidth);
-                        this.ctx.fillRect(-size * 0.8, size * 0.8 - lineWidth, size * 1.4, lineWidth);
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, eLineWidth, size * 1.6);
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.4, eLineWidth);
+                        this.ctx.fillRect(-size * 0.8, -eLineWidth/2, size * 1.2, eLineWidth);
+                        this.ctx.fillRect(-size * 0.8, size * 0.8 - eLineWidth, size * 1.4, eLineWidth);
+                        break;
+                        
+                    case 'letter_a':
+                        const aLineWidth = size * 0.15;
+                        this.ctx.lineWidth = aLineWidth;
+                        this.ctx.strokeStyle = '#C53030';
+                        this.ctx.fillStyle = gradient;
+                        
+                        // A harfi çizimi
+                        // Sol çizgi
+                        this.ctx.fillRect(-size * 0.4, -size * 0.8, aLineWidth, size * 1.6);
+                        // Sağ çizgi  
+                        this.ctx.fillRect(size * 0.4 - aLineWidth, -size * 0.8, aLineWidth, size * 1.6);
+                        // Üst çizgi
+                        this.ctx.fillRect(-size * 0.4, -size * 0.8, size * 0.8, aLineWidth);
+                        // Orta çizgi
+                        this.ctx.fillRect(-size * 0.3, -aLineWidth/2, size * 0.6, aLineWidth);
+                        break;
+
+                    case 'letter_c':
+                        const cLineWidth = size * 0.15;
+                        this.ctx.lineWidth = cLineWidth;
+                        this.ctx.strokeStyle = '#C53030';
+                        this.ctx.fillStyle = gradient;
+                        
+                        // C harfi çizimi
+                        // Sol dikey çizgi
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, cLineWidth, size * 1.6);
+                        // Üst yatay çizgi
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.4, cLineWidth);
+                        // Alt yatay çizgi
+                        this.ctx.fillRect(-size * 0.8, size * 0.8 - cLineWidth, size * 1.4, cLineWidth);
+                        break;
+
+                    case 'letter_d':
+                        const dLineWidth = size * 0.15;
+                        this.ctx.lineWidth = dLineWidth;
+                        this.ctx.strokeStyle = '#C53030';
+                        this.ctx.fillStyle = gradient;
+                        
+                        // D harfi çizimi
+                        // Sol dikey çizgi
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, dLineWidth, size * 1.6);
+                        // Üst yatay çizgi
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.2, dLineWidth);
+                        // Alt yatay çizgi
+                        this.ctx.fillRect(-size * 0.8, size * 0.8 - dLineWidth, size * 1.2, dLineWidth);
+                        // Sağ dikey çizgi (kısa)
+                        this.ctx.fillRect(size * 0.4 - dLineWidth, -size * 0.8 + dLineWidth, dLineWidth, size * 1.6 - 2 * dLineWidth);
                         break;
                 }
                 
@@ -1136,12 +1166,41 @@
                         
                     case 'letter_e':
                         this.ctx.scale(-1, 1);
-                        const lineWidth = size * 0.15;
+                        const eLineWidth = size * 0.15;
                         
-                        this.ctx.fillRect(-size * 0.8, -size * 0.8, lineWidth, size * 1.6);
-                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.4, lineWidth);
-                        this.ctx.fillRect(-size * 0.8, -lineWidth/2, size * 1.2, lineWidth);
-                        this.ctx.fillRect(-size * 0.8, size * 0.8 - lineWidth, size * 1.4, lineWidth);
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, eLineWidth, size * 1.6);
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.4, eLineWidth);
+                        this.ctx.fillRect(-size * 0.8, -eLineWidth/2, size * 1.2, eLineWidth);
+                        this.ctx.fillRect(-size * 0.8, size * 0.8 - eLineWidth, size * 1.4, eLineWidth);
+                        break;
+                        
+                    case 'letter_a':
+                        this.ctx.scale(-1, 1);
+                        const aLineWidth = size * 0.15;
+                        
+                        this.ctx.fillRect(-size * 0.4, -size * 0.8, aLineWidth, size * 1.6);
+                        this.ctx.fillRect(size * 0.4 - aLineWidth, -size * 0.8, aLineWidth, size * 1.6);
+                        this.ctx.fillRect(-size * 0.4, -size * 0.8, size * 0.8, aLineWidth);
+                        this.ctx.fillRect(-size * 0.3, -aLineWidth/2, size * 0.6, aLineWidth);
+                        break;
+
+                    case 'letter_c':
+                        this.ctx.scale(-1, 1);
+                        const cLineWidth = size * 0.15;
+                        
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, cLineWidth, size * 1.6);
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.4, cLineWidth);
+                        this.ctx.fillRect(-size * 0.8, size * 0.8 - cLineWidth, size * 1.4, cLineWidth);
+                        break;
+
+                    case 'letter_d':
+                        this.ctx.scale(-1, 1);
+                        const dLineWidth = size * 0.15;
+                        
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, dLineWidth, size * 1.6);
+                        this.ctx.fillRect(-size * 0.8, -size * 0.8, size * 1.2, dLineWidth);
+                        this.ctx.fillRect(-size * 0.8, size * 0.8 - dLineWidth, size * 1.2, dLineWidth);
+                        this.ctx.fillRect(size * 0.4 - dLineWidth, -size * 0.8 + dLineWidth, dLineWidth, size * 1.6 - 2 * dLineWidth);
                         break;
                 }
                 
@@ -1194,7 +1253,6 @@
                     );
                     
                     if (intersection) {
-                        // Gelen ışın
                         this.drawArrow(
                             this.cmToPx(rayStartX), 
                             this.cmToPx(rayStartY),
@@ -1204,7 +1262,6 @@
                             4
                         );
                         
-                        // Yansıyan ışın
                         const incident = { x: dirX, y: dirY };
                         const reflected = this.calculateReflection(incident, mirrorNormal);
                         
@@ -1220,7 +1277,6 @@
                             4
                         );
                         
-                        // Uzantılar görüntüye kadar
                         if (this.showExtensions && virtualPos) {
                             const extensionEndX = virtualPos.x + Math.cos(angle) * this.object.size * 0.8;
                             const extensionEndY = virtualPos.y + Math.sin(angle) * this.object.size * 0.8;
@@ -1235,7 +1291,6 @@
                             this.ctx.setLineDash([]);
                         }
                         
-                        // Kesişim noktası
                         this.ctx.fillStyle = '#F1C40F';
                         this.ctx.beginPath();
                         this.ctx.arc(this.cmToPx(intersection.x), this.cmToPx(intersection.y), 6, 0, 2 * Math.PI);
@@ -1302,7 +1357,6 @@
                 const centerY = this.cmToPx(this.protractor.y);
                 const radius = this.cmToPx(this.protractor.radius);
                 
-                // Açı ölçer gövdesi (yarım daire)
                 this.ctx.strokeStyle = 'rgba(255, 165, 0, 0.8)';
                 this.ctx.fillStyle = 'rgba(255, 165, 0, 0.2)';
                 this.ctx.lineWidth = 3;
@@ -1313,7 +1367,6 @@
                 this.ctx.fill();
                 this.ctx.stroke();
                 
-                // Açı çizgileri
                 this.ctx.strokeStyle = 'rgba(255, 140, 0, 0.6)';
                 this.ctx.lineWidth = 1;
                 this.ctx.font = '8px Arial';
@@ -1334,7 +1387,6 @@
                     this.ctx.lineTo(endX, endY);
                     this.ctx.stroke();
                     
-                    // Açı değerleri
                     if (angle % 30 === 0) {
                         const textX = centerX + Math.cos(radian) * (radius * 0.7);
                         const textY = centerY + Math.sin(radian) * (radius * 0.7);
@@ -1347,13 +1399,11 @@
                     }
                 }
                 
-                // Merkez noktası
                 this.ctx.fillStyle = '#FF8C00';
                 this.ctx.beginPath();
                 this.ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
                 this.ctx.fill();
                 
-                // Döndürme tutacağı
                 const handleX = centerX + Math.cos(this.protractor.angle + Math.PI) * radius * 0.8;
                 const handleY = centerY + Math.sin(this.protractor.angle + Math.PI) * radius * 0.8;
                 
@@ -1393,7 +1443,6 @@
                     document.getElementById('virtualDistance').textContent = 'Yok';
                 }
                 
-                // Diğer durum bilgileri
                 const objectAngleDegrees = Math.round((this.object.rotation * 180) / Math.PI);
                 document.getElementById('objectAngle').textContent = objectAngleDegrees + '°';
                 
@@ -1439,7 +1488,6 @@
             btn.className = simulation.protractor.visible ? 'active' : '';
         }
         
-        // Simülasyonu başlat
         window.addEventListener('load', () => {
             simulation = new NotchedMirrorSimulation();
         });
