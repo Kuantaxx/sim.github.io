@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiber Optik Simülasyonu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            overflow: hidden;
+            color: white;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            cursor: grab;
+        }
+
+        #container:active {
+            cursor: grabbing;
+        }
+
+        #controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 1000;
+            min-width: 300px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        #analysis-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 1000;
+            min-width: 320px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .title {
+            color: #ff0040;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 25px rgba(255, 0, 64, 1);
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffffff;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+            margin-bottom: 5px;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff0040, #cc0033);
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 0, 64, 1);
+        }
+
+        .value-display {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .info-panel {
+            background: rgba(40, 0, 20, 0.6);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border-left: 3px solid #ff0040;
+            box-shadow: 0 0 15px rgba(255, 0, 64, 0.2);
+        }
+
+        .info-row {
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #ffffff;
+        }
+
+        .critical-angle {
+            background: rgba(255, 0, 64, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 0, 64, 0.3);
+        }
+
+        .angle-comparison {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .angle-safe {
+            background: rgba(0, 255, 68, 0.1);
+            border: 1px solid rgba(0, 255, 68, 0.3);
+        }
+
+        .angle-danger {
+            background: rgba(255, 34, 68, 0.1);
+            border: 1px solid rgba(255, 34, 68, 0.3);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: ultra-laser-pulse 0.6s infinite;
+        }
+
+        .status-success { 
+            background: #00ff44;
+            box-shadow: 0 0 25px rgba(0, 255, 68, 1.5);
+        }
+        
+        .status-fail { 
+            background: #ff2244;
+            box-shadow: 0 0 25px rgba(255, 34, 68, 1.5);
+        }
+
+        @keyframes ultra-laser-pulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+                box-shadow: 0 0 25px rgba(255, 0, 64, 1.5);
+            }
+            50% { 
+                opacity: 0.3; 
+                transform: scale(1.4);
+                box-shadow: 0 0 40px rgba(255, 0, 64, 2);
+            }
+        }
+
+        .mouse-help {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #ffffff;
+            z-index: 1000;
+            border: 1px solid rgba(255, 0, 64, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            #controls, #analysis-panel {
+                width: calc(100vw - 30px);
+                top: 10px;
+                left: 10px;
+                right: auto;
+            }
+            
+            #analysis-panel {
+                top: 300px;
+            }
+            
+            .mouse-help { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <div class="title">🔴 Işığın Fiber Optik Kabloda Hareketi</div>
+            
+            <div class="control-group">
+                <label class="control-label">Gelen ışının yüzey norali ile yaptığı açı:</label>
+                <input type="range" class="slider" id="angleSlider" min="0" max="89" value="15" step="1">
+                <div class="value-display">θ = <span id="angleValue">15</span>° (normal ile)</div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">İç Ortamın Kırıcılık İndisi (n₁):</label>
+                <input type="range" class="slider" id="n1Slider" min="1.40" max="1.65" value="1.50" step="0.01">
+                <div class="value-display">n₁ = <span id="n1Value">1.50</span></div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Dış Ortamın Kırıcılık İndeksi (n₂):</label>
+                <input type="range" class="slider" id="n2Slider" min="1.30" max="1.55" value="1.42" step="0.01">
+                <div class="value-display">n₂ = <span id="n2Value">1.42</span></div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Fiber Optik Kablo Yarıçapı:</label>
+                <input type="range" class="slider" id="coreRadiusSlider" min="0.3" max="1.5" value="0.8" step="0.1">
+                <div class="value-display">r = <span id="coreRadiusValue">0.8</span></div>
+            </div>
+
+            <div class="info-panel">
+                <div class="info-row"><strong>Yansıma Açısı:</strong> <span id="reflectionAngle">-</span>°</div>
+                <div class="info-row"><strong>Bağıl Kırıcılık (n₂/n₁):</strong> <span id="relativeIndex">0.947</span></div>
+                <div class="info-row" style="margin-top: 10px;">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="statusText">Sınır açısının altında - Tam yansıma gerçekleşmez</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="analysis-panel">
+            <div class="critical-angle">
+                <div style="text-align: center; font-weight: bold; margin-bottom: 10px; color: #ff0040;">
+                    🎯 <strong>Hareket Analizi</strong>
+                </div>
+                <div class="info-row" style="font-size: 14px; margin-bottom: 8px;">
+                    <strong>Sınır Açı Değeri (θc):</strong> <span id="criticalAngle" style="color: #ffaa00;">19.4</span>°
+                </div>
+                <div class="info-row" style="font-size: 14px; margin-bottom: 12px;">
+                    <strong>Mevcut Açı (θ):</strong> <span id="currentAngle" style="color: #ff0040;">15.0</span>°
+                </div>
+                <div class="angle-comparison" id="angleComparison">
+                    <span>θ &lt; θc</span>
+                    <span style="color: #ff2244;">✗ Tam Yansıma Olmaz</span>
+                </div>
+                
+                <div style="margin-top: 12px; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 11px; line-height: 1.4; color: #ffffff;">
+                    <strong>Fizik Kuralı:</strong><br>
+                    • θ &lt; θc → Tam yansıma OLMAZ<br>
+                    • θ ≥ θc → Tam yansıma OLUR<br><br>
+                    <strong>Ok Anlamları:</strong><br>
+                    • <span style="color: #00AAFF;">Mavi:</span> Işın hareket yönü<br>
+                    • <span style="color: #FF4444;">Kırmızı:</span> Gelen ışın (yansımada)<br>
+                    • <span style="color: #44FF44;">Yeşil:</span> Yansıyan ışın<br>
+                    • <span style="color: #FFFF00;">Sarı:</span> Yansıma noktası<br>
+                    • <span style="color: #FF6600;">Turuncu:</span> Dışarı çıkan ışın (tam yansıma olmadığında)
+                </div>
+            </div>
+        </div>
+
+        <div class="mouse-help">
+            🖱️ <strong>Kontroller:</strong><br>
+            • Sürükle: Döndür<br>
+            • Tekerlek: Zoom<br>
+            • Çift tık: Sıfırla
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Global değişkenler
+        let scene, camera, renderer;
+        let core, cladding;
+        let rayGroup, normalGroup, arrowGroup;
+        let mouse = { x: 0, y: 0, down: false };
+        let rotation = { x: 0, y: 0 };
+        let targetRotation = { x: 0, y: 0 };
+        let zoom = 18;
+        let targetZoom = 18;
+        
+        // Fiber rotasyon kontrolü
+        let isUserInteracting = false;
+
+        // Fiber parametreleri
+        let params = {
+            angleWithNormal: 15,
+            n1: 1.50,
+            n2: 1.42,
+            coreRadius: 0.8,
+            fiberLength: 15
+        };
+
+        function init() {
+            console.log('Ultra yoğun laser simülasyon başlatılıyor...');
+            
+            // Sahne - Yeni arkaplan rengi (koyu mavi-mor gradient)
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            // Kamera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            updateCameraPosition();
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Çok güçlü işıklar
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.2);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+
+            // Ultra yoğun kırmızı nokta ışık
+            const laserLight = new THREE.PointLight(0xff0040, 4.0, 70);
+            laserLight.position.set(-8, 0, 0);
+            scene.add(laserLight);
+
+            const glowLight1 = new THREE.PointLight(0xff6680, 2.5, 50);
+            glowLight1.position.set(-6, 0, 2);
+            scene.add(glowLight1);
+
+            const glowLight2 = new THREE.PointLight(0xff0066, 2.0, 45);
+            glowLight2.position.set(-7, 0, -2);
+            scene.add(glowLight2);
+
+            const extraGlow = new THREE.PointLight(0xffffff, 1.5, 40);
+            extraGlow.position.set(0, 0, 0);
+            scene.add(extraGlow);
+
+            // Gruplar
+            rayGroup = new THREE.Group();
+            normalGroup = new THREE.Group();
+            arrowGroup = new THREE.Group();
+            scene.add(rayGroup);
+            scene.add(normalGroup);
+            scene.add(arrowGroup);
+
+            // Fiber oluştur
+            createFiber();
+
+            // Kontrolleri ayarla
+            setupControls();
+            setupMouseControls();
+
+            // İlk simülasyon
+            updateSimulation();
+
+            // Animasyon başlat
+            animate();
+            
+            console.log('Ultra yoğun laser simülasyon hazır!');
+        }
+
+        function createFiber() {
+            if (core) scene.remove(core);
+            if (cladding) scene.remove(cladding);
+
+            const coreGeometry = new THREE.CylinderGeometry(
+                params.coreRadius, 
+                params.coreRadius, 
+                params.fiberLength, 
+                32
+            );
+            const coreMaterial = new THREE.MeshPhongMaterial({
+                color: 0x1a2a3a,
+                transparent: true,
+                opacity: 0.5,
+                shininess: 100,
+                emissive: 0x001122
+            });
+            core = new THREE.Mesh(coreGeometry, coreMaterial);
+            core.rotation.z = Math.PI / 2;
+            scene.add(core);
+
+            const claddingRadius = params.coreRadius + 0.3;
+            const claddingGeometry = new THREE.CylinderGeometry(
+                claddingRadius, 
+                claddingRadius, 
+                params.fiberLength, 
+                32
+            );
+            const claddingMaterial = new THREE.MeshPhongMaterial({
+                color: 0x4a5a6a,
+                transparent: true,
+                opacity: 0.2,
+                shininess: 50
+            });
+            cladding = new THREE.Mesh(claddingGeometry, claddingMaterial);
+            cladding.rotation.z = Math.PI / 2;
+            scene.add(cladding);
+        }
+
+        function setupControls() {
+            const sliders = document.querySelectorAll('.slider');
+            
+            sliders.forEach(slider => {
+                slider.addEventListener('mousedown', () => {
+                    isUserInteracting = true;
+                });
+                
+                slider.addEventListener('touchstart', () => {
+                    isUserInteracting = true;
+                });
+                
+                slider.addEventListener('mouseup', () => {
+                    setTimeout(() => {
+                        isUserInteracting = false;
+                    }, 2000);
+                });
+                
+                slider.addEventListener('touchend', () => {
+                    setTimeout(() => {
+                        isUserInteracting = false;
+                    }, 2000);
+                });
+            });
+
+            const angleSlider = document.getElementById('angleSlider');
+            angleSlider.addEventListener('input', function() {
+                params.angleWithNormal = parseFloat(this.value);
+                document.getElementById('angleValue').textContent = params.angleWithNormal;
+                updateSimulation();
+            });
+
+            const n1Slider = document.getElementById('n1Slider');
+            n1Slider.addEventListener('input', function() {
+                params.n1 = parseFloat(this.value);
+                document.getElementById('n1Value').textContent = params.n1.toFixed(2);
+                
+                if (params.n1 <= params.n2) {
+                    params.n2 = params.n1 - 0.01;
+                    document.getElementById('n2Slider').value = params.n2.toFixed(2);
+                    document.getElementById('n2Value').textContent = params.n2.toFixed(2);
+                }
+                updateSimulation();
+            });
+
+            const n2Slider = document.getElementById('n2Slider');
+            n2Slider.addEventListener('input', function() {
+                params.n2 = parseFloat(this.value);
+                document.getElementById('n2Value').textContent = params.n2.toFixed(2);
+                
+                if (params.n2 >= params.n1) {
+                    params.n1 = params.n2 + 0.01;
+                    document.getElementById('n1Slider').value = params.n1.toFixed(2);
+                    document.getElementById('n1Value').textContent = params.n1.toFixed(2);
+                }
+                updateSimulation();
+            });
+
+            const coreRadiusSlider = document.getElementById('coreRadiusSlider');
+            coreRadiusSlider.addEventListener('input', function() {
+                params.coreRadius = parseFloat(this.value);
+                document.getElementById('coreRadiusValue').textContent = params.coreRadius.toFixed(1);
+                createFiber();
+                updateSimulation();
+            });
+        }
+
+        function setupMouseControls() {
+            const container = document.getElementById('container');
+
+            container.addEventListener('mousedown', function(e) {
+                if (e.target.closest('#controls') || e.target.closest('#analysis-panel')) return;
+                
+                mouse.down = true;
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+                container.style.cursor = 'grabbing';
+                isUserInteracting = true;
+            });
+
+            container.addEventListener('mousemove', function(e) {
+                if (!mouse.down) return;
+
+                const deltaX = e.clientX - mouse.x;
+                const deltaY = e.clientY - mouse.y;
+
+                targetRotation.y += deltaX * 0.005;
+                targetRotation.x += deltaY * 0.005;
+                targetRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotation.x));
+
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+
+            container.addEventListener('mouseup', function() {
+                mouse.down = false;
+                container.style.cursor = 'grab';
+                setTimeout(() => {
+                    isUserInteracting = false;
+                }, 2000);
+            });
+
+            container.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                targetZoom += e.deltaY > 0 ? 2 : -2;
+                targetZoom = Math.max(8, Math.min(40, targetZoom));
+            });
+
+            container.addEventListener('dblclick', function() {
+                targetRotation.x = 0;
+                targetRotation.y = 0;
+                targetZoom = 18;
+                isUserInteracting = false;
+            });
+        }
+
+        function drawNormal(position, isHorizontal = false, length = 0.7) {
+            const normalGeometry = new THREE.BufferGeometry();
+            const normalStart = position.clone();
+            const normalEnd = position.clone();
+            
+            if (isHorizontal) {
+                normalEnd.y += (position.y > 0 ? -length : length);
+            } else {
+                normalEnd.x += length;
+            }
+            
+            normalGeometry.setFromPoints([normalStart, normalEnd]);
+            
+            const normalMaterial = new THREE.LineBasicMaterial({
+                color: 0xFFFF00,
+                linewidth: 5
+            });
+            
+            const normalLine = new THREE.Line(normalGeometry, normalMaterial);
+            normalGroup.add(normalLine);
+            
+            const arrowGeometry = new THREE.ConeGeometry(0.1, 0.25, 8);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            
+            arrow.position.copy(normalEnd);
+            if (isHorizontal) {
+                arrow.rotation.z = position.y > 0 ? 0 : Math.PI;
+            } else {
+                arrow.rotation.z = -Math.PI / 2;
+            }
+            
+            normalGroup.add(arrow);
+        }
+
+        function createDirectionalArrow(startPos, endPos, color, size = 0.08) {
+            const direction = new THREE.Vector3().subVectors(endPos, startPos).normalize();
+            const length = startPos.distanceTo(endPos);
+            
+            // Ok geometrisi
+            const arrowGeometry = new THREE.ConeGeometry(size, size * 2, 8);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ 
+                color: color,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            
+            // Okun pozisyonunu segment ortasına koy
+            arrow.position.lerpVectors(startPos, endPos, 0.5);
+            
+            // Ok yönünü ayarla
+            arrow.lookAt(endPos);
+            arrow.rotateX(Math.PI / 2);
+            
+            return arrow;
+        }
+
+        // Düzeltilmiş ok çizim fonksiyonu
+        function drawDirectionArrows(points, normalPositions, criticalAngle) {
+            // Okları temizle
+            while(arrowGroup.children.length > 0) {
+                arrowGroup.remove(arrowGroup.children[0]);
+            }
+
+            if (points.length < 2) return;
+
+            // Işının hareket yönü okları (mavi)
+            const hasReflections = normalPositions.length > 0;
+            
+            for (let i = 0; i < points.length - 1; i++) {
+                const currentPoint = points[i];
+                const nextPoint = points[i + 1];
+                const segmentLength = currentPoint.distanceTo(nextPoint);
+                
+                // Segment yeterince uzunsa ok çiz
+                if (segmentLength > 0.5) {
+                    const arrow = createDirectionalArrow(currentPoint, nextPoint, 0x00AAFF, 0.06);
+                    arrowGroup.add(arrow);
+                }
+            }
+
+            // Yansıma noktalarında özel oklar
+            normalPositions.forEach((normalPos, index) => {
+                const reflectionPoint = normalPos.position;
+                const incidentAngle = normalPos.incidentAngle;
+                
+                // Yansıma noktası göstergesi
+                const indicator = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.08, 12, 12),
+                    new THREE.MeshBasicMaterial({ 
+                        color: incidentAngle >= criticalAngle ? 0xFFFF00 : 0xFF6600,
+                        transparent: true,
+                        opacity: 0.8
+                    })
+                );
+                indicator.position.copy(reflectionPoint);
+                arrowGroup.add(indicator);
+
+                // Sadece birkaç önemli nokta için detaylı oklar
+                if (index < 3) {
+                    if (incidentAngle >= criticalAngle) {
+                        // Tam yansıma olur - gelen ve yansıyan oklar
+                        if (index > 0 && index < points.length - 2) {
+                            const beforePoint = points[index];
+                            const afterPoint = points[index + 2];
+                            
+                            // Gelen ışın oku (kırmızı)
+                            const incomingDir = new THREE.Vector3()
+                                .subVectors(reflectionPoint, beforePoint)
+                                .normalize()
+                                .multiplyScalar(0.5);
+                            const incomingArrowPos = reflectionPoint.clone().sub(incomingDir);
+                            const incomingArrow = createDirectionalArrow(
+                                incomingArrowPos, 
+                                reflectionPoint, 
+                                0xFF4444, 
+                                0.1
+                            );
+                            arrowGroup.add(incomingArrow);
+                            
+                            // Yansıyan ışın oku (yeşil)
+                            const outgoingDir = new THREE.Vector3()
+                                .subVectors(afterPoint, reflectionPoint)
+                                .normalize()
+                                .multiplyScalar(0.5);
+                            const outgoingArrowPos = reflectionPoint.clone().add(outgoingDir);
+                            const outgoingArrow = createDirectionalArrow(
+                                reflectionPoint, 
+                                outgoingArrowPos, 
+                                0x44FF44, 
+                                0.1
+                            );
+                            arrowGroup.add(outgoingArrow);
+                        }
+                    } else {
+                        // Tam yansıma olmaz - dışarı çıkan ışın oku (turuncu)
+                        const exitDir = new THREE.Vector3(0, reflectionPoint.y > 0 ? 1 : -1, 0);
+                        const exitArrowPos = reflectionPoint.clone().add(exitDir.multiplyScalar(0.5));
+                        const exitArrow = createDirectionalArrow(
+                            reflectionPoint, 
+                            exitArrowPos, 
+                            0xFF6600, 
+                            0.1
+                        );
+                        arrowGroup.add(exitArrow);
+                    }
+                }
+            });
+        }
+
+        function calculateRayPath() {
+            const fiberAxisAngle = 90 - params.angleWithNormal;
+            const angleRad = (fiberAxisAngle * Math.PI) / 180;
+            
+            const points = [];
+            const normalPositions = [];
+            
+            let x = -params.fiberLength / 2;
+            let y = 0;
+            let dx = Math.cos(angleRad);
+            let dy = Math.sin(angleRad);
+            
+            points.push(new THREE.Vector3(x, y, 0));
+            
+            const criticalAngle = Math.asin(params.n2 / params.n1);
+            let bounces = 0;
+            const maxBounces = 25;
+            
+            while (x < params.fiberLength / 2 && bounces < maxBounces) {
+                const t_top = dy > 0 ? (params.coreRadius - y) / dy : Infinity;
+                const t_bottom = dy < 0 ? (-params.coreRadius - y) / dy : Infinity;
+                const t_end = (params.fiberLength / 2 - x) / dx;
+                
+                let t = Math.min(
+                    t_top > 0.001 ? t_top : Infinity,
+                    t_bottom > 0.001 ? t_bottom : Infinity,
+                    t_end > 0.001 ? t_end : Infinity
+                );
+                
+                if (t === Infinity || t <= 0) break;
+                
+                x += dx * t;
+                y += dy * t;
+                
+                const hitPoint = new THREE.Vector3(x, y, 0);
+                points.push(hitPoint);
+                
+                if (Math.abs(y) >= params.coreRadius - 0.001) {
+                    const incidenceAngle = Math.abs(Math.atan2(Math.abs(dx), Math.abs(dy)));
+                    
+                    normalPositions.push({ 
+                        position: hitPoint.clone(), 
+                        isHorizontal: true,
+                        incidentAngle: incidenceAngle
+                    });
+                    
+                    if (incidenceAngle < criticalAngle) {
+                        // Tam yansıma olmaz, ışın dışarı çıkar
+                        break;
+                    }
+                    
+                    dy = -dy;
+                    bounces++;
+                }
+            }
+            
+            return { points, normalPositions, criticalAngle };
+        }
+
+        function updateSimulation() {
+            while(rayGroup.children.length > 0) {
+                rayGroup.remove(rayGroup.children[0]);
+            }
+            while(normalGroup.children.length > 0) {
+                normalGroup.remove(normalGroup.children[0]);
+            }
+            
+            const criticalAngleDeg = Math.asin(params.n2 / params.n1) * (180 / Math.PI);
+            const relativeRefractiveIndex = params.n2 / params.n1;
+            
+            document.getElementById('criticalAngle').textContent = criticalAngleDeg.toFixed(1);
+            document.getElementById('currentAngle').textContent = params.angleWithNormal.toFixed(1);
+            document.getElementById('relativeIndex').textContent = relativeRefractiveIndex.toFixed(3);
+            document.getElementById('reflectionAngle').textContent = params.angleWithNormal.toFixed(1);
+            
+            const angleComparison = document.getElementById('angleComparison');
+            const isReflecting = params.angleWithNormal >= criticalAngleDeg;
+            
+            if (isReflecting) {
+                angleComparison.className = 'angle-comparison angle-safe';
+                angleComparison.innerHTML = `
+                    <span>θ (${params.angleWithNormal}°) ≥ θc (${criticalAngleDeg.toFixed(1)}°)</span>
+                    <span style="color: #00ff44;">✓ Tam Yansıma Olur</span>
+                `;
+            } else {
+                angleComparison.className = 'angle-comparison angle-danger';
+                angleComparison.innerHTML = `
+                    <span>θ (${params.angleWithNormal}°) &lt; θc (${criticalAngleDeg.toFixed(1)}°)</span>
+                    <span style="color: #ff2244;">✗ Tam Yansıma Olmaz</span>
+                `;
+            }
+            
+            const { points, normalPositions, criticalAngle } = calculateRayPath();
+            
+            if (points.length > 1) {
+                const laserColor = 0xFF0040;
+                
+                const rayGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const rayMaterial = new THREE.LineBasicMaterial({
+                    color: laserColor,
+                    linewidth: 30
+                });
+                const rayLine = new THREE.Line(rayGeometry, rayMaterial);
+                rayGroup.add(rayLine);
+                
+                const innerGlowMaterial = new THREE.LineBasicMaterial({
+                    color: 0xFFFFFF,
+                    linewidth: 15,
+                    transparent: true,
+                    opacity: 1.0
+                });
+                const innerGlow = new THREE.Line(rayGeometry, innerGlowMaterial);
+                rayGroup.add(innerGlow);
+                
+                const outerGlowMaterial1 = new THREE.LineBasicMaterial({
+                    color: laserColor,
+                    linewidth: 50,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const outerGlow1 = new THREE.Line(rayGeometry, outerGlowMaterial1);
+                rayGroup.add(outerGlow1);
+                
+                const outerGlowMaterial2 = new THREE.LineBasicMaterial({
+                    color: 0xFF6680,
+                    linewidth: 80,
+                    transparent: true,
+                    opacity: 0.4
+                });
+                const outerGlow2 = new THREE.Line(rayGeometry, outerGlowMaterial2);
+                rayGroup.add(outerGlow2);
+                
+                const outerGlowMaterial3 = new THREE.LineBasicMaterial({
+                    color: 0xFF99AA,
+                    linewidth: 110,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const outerGlow3 = new THREE.Line(rayGeometry, outerGlowMaterial3);
+                rayGroup.add(outerGlow3);
+                
+                const outerGlowMaterial4 = new THREE.LineBasicMaterial({
+                    color: 0xFFBBCC,
+                    linewidth: 140,
+                    transparent: true,
+                    opacity: 0.2
+                });
+                const outerGlow4 = new THREE.Line(rayGeometry, outerGlowMaterial4);
+                rayGroup.add(outerGlow4);
+                
+                const pointsMaterial = new THREE.PointsMaterial({
+                    color: laserColor,
+                    size: 0.8,
+                    transparent: true,
+                    opacity: 1.0
+                });
+                const laserPoints = new THREE.Points(rayGeometry, pointsMaterial);
+                rayGroup.add(laserPoints);
+                
+                const sparkMaterial = new THREE.PointsMaterial({
+                    color: 0xFFFFFF,
+                    size: 0.5,
+                    transparent: true,
+                    opacity: 1.0
+                });
+                const sparks = new THREE.Points(rayGeometry, sparkMaterial);
+                rayGroup.add(sparks);
+                
+                const colorSparks = new THREE.PointsMaterial({
+                    color: 0xFF6680,
+                    size: 0.35,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const colorParticles = new THREE.Points(rayGeometry, colorSparks);
+                rayGroup.add(colorParticles);
+                
+                const blueSparksMaterial = new THREE.PointsMaterial({
+                    color: 0x4466FF,
+                    size: 0.3,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const blueSparks = new THREE.Points(rayGeometry, blueSparksMaterial);
+                rayGroup.add(blueSparks);
+                
+                // Düzeltilmiş okları çiz
+                drawDirectionArrows(points, normalPositions, criticalAngle);
+                
+                normalPositions.forEach(({ position, isHorizontal }) => {
+                    drawNormal(position, isHorizontal);
+                });
+                
+                const statusIndicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                if (isReflecting) {
+                    statusIndicator.className = 'status-indicator status-success';
+                    statusText.textContent = 'Sınır açısına eşit/üstünde - Tam yansıma gerçekleşir';
+                } else {
+                    statusIndicator.className = 'status-indicator status-fail';
+                    statusText.textContent = 'Sınır açısının altında - Tam yansıma gerçekleşmez';
+                }
+            }
+        }
+
+        function updateCameraPosition() {
+            camera.position.x = Math.sin(rotation.y) * Math.cos(rotation.x) * zoom;
+            camera.position.y = Math.sin(rotation.x) * zoom;
+            camera.position.z = Math.cos(rotation.y) * Math.cos(rotation.x) * zoom;
+            camera.lookAt(0, 0, 0);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            rotation.x += (targetRotation.x - rotation.x) * 0.1;
+            rotation.y += (targetRotation.y - rotation.y) * 0.1;
+            zoom += (targetZoom - zoom) * 0.1;
+            
+            updateCameraPosition();
+            
+            if (!isUserInteracting && !mouse.down && core && cladding) {
+                core.rotation.x += 0.001;
+                cladding.rotation.x += 0.001;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize);
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
