@@ -195,7 +195,8 @@
     
     let laser = { x: 100, y: 300, angle: 0, isDraggingBody: false, isDraggingTip: false };
     let obj = { x: 150, h: 80, isDragging: false }; 
-    let ruler = { cx: -1000, cy: -1000, w: 400, h: 40, angle: 0, isDragging: false, isRotating: false, offX: 0, offY: 0 }; 
+    // CETVEL GÜNCELLEMESİ: markerV ve isDraggingMarker eklendi
+    let ruler = { cx: -1000, cy: -1000, w: 400, h: 40, angle: 0, isDragging: false, isRotating: false, offX: 0, offY: 0, markerV: 150, isDraggingMarker: false }; 
     let guessAxis = { y: -1000, isDragging: false }; 
     let guessO = { x: 100, y: 100, isDragging: false };
 
@@ -328,6 +329,11 @@
         
         if (showRuler) {
             let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s; let localY = dx * s + dy * c;
+            
+            // Dijital imleç kontrolü (Kumpas)
+            let markerLocalX = -ruler.w/2 + ruler.markerV;
+            if (Math.abs(localX - markerLocalX) < 25 && Math.abs(localY) < 35) { ruler.isDraggingMarker = true; return; }
+
             if (Math.hypot(localX - (ruler.w/2 + 25), localY) < 25) { ruler.isRotating = true; return; }
             if (localX >= -ruler.w/2 && localX <= ruler.w/2 && localY >= -ruler.h/2 && localY <= ruler.h/2) { ruler.isDragging = true; ruler.offX = mx - ruler.cx; ruler.offY = my - ruler.cy; return; }
         }
@@ -342,8 +348,19 @@
     function handleMove(e) {
         if (isDrawingMode) return; if(e.type === 'touchmove') e.preventDefault();
         const rect = simCanvas.getBoundingClientRect(); const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        
         if (guessO.isDragging) { guessO.x = mx; guessO.y = my; draw(); simCanvas.style.cursor = 'grabbing'; return; }
         if (guessAxis.isDragging) { guessAxis.y = my; draw(); simCanvas.style.cursor = 'ns-resize'; return; }
+        
+        // Dijital İmleç Sürükleme
+        if (ruler.isDraggingMarker) {
+            let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s;
+            ruler.markerV = localX + ruler.w/2;
+            if (ruler.markerV < 0) ruler.markerV = 0;
+            if (ruler.markerV > ruler.w) ruler.markerV = ruler.w;
+            draw(); simCanvas.style.cursor = 'ew-resize'; return;
+        }
+
         if (ruler.isRotating) { ruler.angle = Math.atan2(my - ruler.cy, mx - ruler.cx); draw(); simCanvas.style.cursor = 'grabbing'; return; }
         if (ruler.isDragging) { ruler.cx = mx - ruler.offX; ruler.cy = my - ruler.offY; draw(); simCanvas.style.cursor = 'grabbing'; return; }
         if (laser.isDraggingBody) { laser.x = mx; laser.y = my; draw(); simCanvas.style.cursor = 'grabbing'; return; }
@@ -356,7 +373,10 @@
         }
         if (showRuler) {
             let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s; let localY = dx * s + dy * c;
-            if (Math.hypot(localX - (ruler.w/2 + 25), localY) < 25 || (localX >= -ruler.w/2 && localX <= ruler.w/2 && localY >= -ruler.h/2 && localY <= ruler.h/2)) isHovering = true;
+            let markerLocalX = -ruler.w/2 + ruler.markerV;
+            
+            if (Math.abs(localX - markerLocalX) < 25 && Math.abs(localY) < 35) isHovering = true;
+            else if (Math.hypot(localX - (ruler.w/2 + 25), localY) < 25 || (localX >= -ruler.w/2 && localX <= ruler.w/2 && localY >= -ruler.h/2 && localY <= ruler.h/2)) isHovering = true;
         }
         if (!isHovering) {
             if (currentMode === 'isin') {
@@ -366,7 +386,7 @@
         }
         simCanvas.style.cursor = isHovering ? 'grab' : 'crosshair';
     }
-    const stopDrag = () => { guessO.isDragging = false; guessAxis.isDragging = false; ruler.isDragging = false; ruler.isRotating = false; laser.isDraggingBody = false; laser.isDraggingTip = false; obj.isDragging = false; simCanvas.style.cursor = 'crosshair'; };
+    const stopDrag = () => { guessO.isDragging = false; guessAxis.isDragging = false; ruler.isDragging = false; ruler.isRotating = false; ruler.isDraggingMarker = false; laser.isDraggingBody = false; laser.isDraggingTip = false; obj.isDragging = false; simCanvas.style.cursor = 'crosshair'; };
     simCanvas.addEventListener('mousedown', handleStart); simCanvas.addEventListener('mousemove', handleMove); simCanvas.addEventListener('mouseup', stopDrag); simCanvas.addEventListener('mouseleave', stopDrag);
     simCanvas.addEventListener('touchstart', handleStart, {passive: false}); simCanvas.addEventListener('touchmove', handleMove, {passive: false}); simCanvas.addEventListener('touchend', stopDrag);
 
@@ -403,11 +423,42 @@
         ctx.fillStyle = 'rgba(0, 242, 254, 0.15)'; ctx.fill(); ctx.strokeStyle = C_ACCENT; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.shadowBlur = 15; ctx.shadowColor = C_ACCENT; ctx.stroke(); ctx.shadowBlur = 0;
         ctx.beginPath(); ctx.moveTo(O_x, centerY - lensHeight - 20); ctx.lineTo(O_x, centerY + lensHeight + 20); ctx.strokeStyle = 'rgba(0, 242, 254, 0.3)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
     }
+    
+    // --- YENİ DİJİTAL CETVEL ---
     function drawPortableRuler() {
-        if (!showRuler) return; ctx.save(); ctx.translate(ruler.cx, ruler.cy); ctx.rotate(ruler.angle); ctx.fillStyle = 'rgba(0, 242, 254, 0.1)'; ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)'; ctx.lineWidth = 1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h, 6); else ctx.rect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h); ctx.fill(); ctx.stroke(); ctx.fillStyle = C_ACCENT; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
+        if (!showRuler) return; ctx.save(); ctx.translate(ruler.cx, ruler.cy); ctx.rotate(ruler.angle); 
+        
+        // Cetvel Zemin
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.1)'; ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)'; ctx.lineWidth = 1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h, 6); else ctx.rect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h); ctx.fill(); ctx.stroke(); 
+        
+        // Ölçülen Alan Vurgusu (0 ile imleç arası)
+        ctx.fillStyle = 'rgba(57, 255, 20, 0.15)'; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-ruler.w/2, -ruler.h/2, ruler.markerV, ruler.h, {tl:6, bl:6, tr:0, br:0}); else ctx.rect(-ruler.w/2, -ruler.h/2, ruler.markerV, ruler.h); ctx.fill();
+
+        // Çizgiler (Ticks)
+        ctx.fillStyle = C_ACCENT; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
         for (let i = 0; i <= ruler.w; i += 10) { let isMajor = (i % 50 === 0); let tickH = isMajor ? 12 : 6; let rx = -ruler.w/2 + i; ctx.beginPath(); ctx.moveTo(rx, -ruler.h/2); ctx.lineTo(rx, -ruler.h/2 + tickH); ctx.stroke(); if (isMajor) ctx.fillText(i, rx, -ruler.h/2 + tickH + 12); }
-        ctx.beginPath(); ctx.arc(ruler.w/2 + 25, 0, 12, 0, Math.PI*2); ctx.fillStyle = 'rgba(57, 255, 20, 0.5)'; ctx.fill(); ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.fillText('↻', ruler.w/2 + 25, 5); ctx.restore();
+        
+        // Döndürme İkonu
+        ctx.beginPath(); ctx.arc(ruler.w/2 + 25, 0, 12, 0, Math.PI*2); ctx.fillStyle = 'rgba(57, 255, 20, 0.5)'; ctx.fill(); ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.fillText('↻', ruler.w/2 + 25, 5); 
+        
+        // --- Dijital Kumpas ve Ekran ---
+        let mx_local = -ruler.w/2 + ruler.markerV;
+        
+        // Kumpas Çizgisi
+        ctx.beginPath(); ctx.moveTo(mx_local, -ruler.h/2 - 15); ctx.lineTo(mx_local, ruler.h/2 + 5); ctx.strokeStyle = '#ffbd00'; ctx.lineWidth = 2; ctx.stroke();
+        
+        // Kumpas Tutacağı
+        ctx.beginPath(); ctx.moveTo(mx_local - 8, -ruler.h/2 - 15); ctx.lineTo(mx_local + 8, -ruler.h/2 - 15); ctx.lineTo(mx_local, -ruler.h/2 - 2); ctx.closePath(); ctx.fillStyle = '#ffbd00'; ctx.fill();
+        
+        // Dijital Ekran Kutusu
+        ctx.fillStyle = '#0a0a0a'; ctx.strokeStyle = '#ffbd00'; ctx.lineWidth = 2; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(mx_local - 30, -ruler.h/2 - 45, 60, 24, 4); else ctx.rect(mx_local - 30, -ruler.h/2 - 45, 60, 24); ctx.fill(); ctx.stroke();
+        
+        // Dijital Ekran Metni
+        ctx.fillStyle = '#39ff14'; ctx.font = 'bold 14px "Courier New", monospace'; ctx.fillText(Math.round(ruler.markerV) + ' br', mx_local, -ruler.h/2 - 28);
+
+        ctx.restore();
     }
+
     function drawModernLaser() {
         ctx.save(); ctx.translate(laser.x, laser.y); ctx.rotate(laser.angle); let grad = ctx.createLinearGradient(-40, -15, 40, 15); grad.addColorStop(0, '#222'); grad.addColorStop(0.5, '#444'); grad.addColorStop(1, '#222'); ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(-40, -10); ctx.lineTo(25, -10); ctx.lineTo(40, -5); ctx.lineTo(40, 5); ctx.lineTo(25, 10); ctx.lineTo(-40, 10); ctx.closePath(); ctx.fill(); ctx.strokeStyle = C_ACCENT; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-20, -10); ctx.lineTo(-20, 10); ctx.moveTo(10, -10); ctx.lineTo(10, 10); ctx.stroke(); ctx.shadowBlur = 20; ctx.shadowColor = C_LASER; ctx.fillStyle = laser.isDraggingTip ? '#fff' : C_LASER; ctx.beginPath(); ctx.arc(45, 0, 6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = C_LASER; ctx.beginPath(); ctx.arc(48, 0, 3, 0, Math.PI*2); ctx.fill(); ctx.restore();
     }
