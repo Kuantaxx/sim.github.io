@@ -38,13 +38,30 @@
         button.mode-btn.active { background-color: var(--accent-color); color: #000; box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); }
         button.lens-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
         button.shape-btn.active { background-color: rgba(57, 255, 20, 0.2); color: #39ff14; border-color: #39ff14; }
+        
+        /* Çizim Butonları */
+        button.draw-btn.active { background-color: #ffbd00; color: #000; box-shadow: 0 0 10px rgba(255, 189, 0, 0.4); }
+        .draw-panel { border: 1px solid #ffbd00; }
 
         label { font-size: 12px; font-weight: 600; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap;}
         input[type="range"] { cursor: pointer; width: 70px; accent-color: var(--accent-color); }
         input[type="checkbox"] { accent-color: var(--accent-color); cursor: pointer; margin: 0; }
         
+        /* Tahmin Alanı */
+        .guess-input { width: 45px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #555; border-radius: 4px; padding: 3px 5px; text-align: center; font-weight: bold;}
+        .guess-input:focus { outline: none; border-color: #ffbd00; }
+        .discovery-panel { border: 1px solid #ffbd00; background: rgba(255,189,0,0.1); }
+        .btn-verify { background:#ffbd00; color:#000; border:none; padding:4px 12px; border-radius:4px; font-weight:bold; box-shadow: 0 0 10px rgba(255,189,0,0.4); }
+        .btn-verify:hover { background:#ffda4d; color:#000; }
+
         #canvas-wrapper { flex: 1; position: relative; width: 100%; overflow: hidden; }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; cursor: crosshair; background-color: #05070a; background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 50px 50px; }
+        
+        #simCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; cursor: crosshair; background-color: #05070a; background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px); background-size: 50px 50px; z-index: 1; }
+        #drawingCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; z-index: 3; pointer-events: none; touch-action: none; }
+        
+        body.is-drawing #simCanvas { pointer-events: none; }
+        body.is-drawing #drawingCanvas { pointer-events: auto; cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffbd00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.5 8.6"></path><path d="M11 11l3.5 3.5"></path></svg>') 0 24, auto; }
+        body.is-drawing.eraser-active #drawingCanvas { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"></path><path d="M17 17L7 7"></path></svg>') 10 10, auto; }
 
         #info-overlay {
             position: absolute; bottom: 20px; left: 20px; 
@@ -82,49 +99,70 @@
         <div id="shape-controls" class="control-group" style="border-color: #39ff14;">
             <button id="btnShapeArrow" class="shape-btn active">Ok ⬆️</button>
             <button id="btnShapeTriangle" class="shape-btn">Üçgen 🔺</button>
-            <button id="btnShapeF" class="shape-btn">F Harfi Ⓕ</button>
         </div>
 
         <div class="separator"></div>
         <div class="control-group">
-            <button id="btnInce" class="lens-btn active">İnce Kenarlı (Yakınsak) Mercek</button>
-            <button id="btnKalin" class="lens-btn">Kalın Kenarlı (Iraksak) Mercek</button>
+            <button id="btnInce" class="lens-btn active">İnce Kenarlı (Yakınsak)</button>
+            <button id="btnKalin" class="lens-btn">Kalın Kenarlı (Iraksak)</button>
         </div>
+        
         <div class="separator"></div>
-        <div class="control-group">
-             <label><input type="checkbox" id="checkAxis"> Asal Eksen</label>
-             <label><input type="checkbox" id="checkO"> Optik Merkez</label>
-             <label><input type="checkbox" id="checkF"> Odak noktası</label>
-             <label><input type="checkbox" id="check2F"> 2F Noktası</label>
+        <div class="control-group draw-panel">
+            <button id="btnPen" class="draw-btn" title="Kalem">✏️ Kalem</button>
+            <button id="btnEraser" class="draw-btn" title="Silgi">🧼 Silgi</button>
+            <button id="btnClearDraw" style="color:#ff5555;" title="Tüm Çizimleri Sil">🗑️ Temizle</button>
+        </div>
+
+        <div class="separator"></div>
+        <div class="control-group discovery-panel">
+            <span style="color:#ffbd00; font-weight:bold; margin-right:5px;">🕵️ Keşif:</span>
+            <label style="color:#ffbd00;">F=<input type="number" id="guessF" class="guess-input"></label>
+            <label style="color:#ffbd00;">2F=<input type="number" id="guess2F" class="guess-input"></label>
+            <button id="btnCheckGuess" class="btn-verify">Doğrula ✔️</button>
+        </div>
+
+        <div class="separator"></div>
+        <div class="control-group" id="teacher-controls" style="display:none;">
+             <label><input type="checkbox" id="checkAxis"> Eksen</label>
+             <label><input type="checkbox" id="checkO"> Merkez</label>
+             <label><input type="checkbox" id="checkF"> F</label>
+             <label><input type="checkbox" id="check2F"> 2F</label>
         </div>
         <div class="control-group">
              <label><input type="checkbox" id="checkRuler" checked> Cetvel</label>
         </div>
+        
         <div class="control-group" style="margin-left:auto;">
-            <label for="sliderF">Odak (f):<span id="valF" style="color:var(--accent-color); width:25px; text-align:center;">150</span></label>
+            <label for="sliderF">Odak (f):<span id="valF" style="color:var(--accent-color); width:25px; text-align:center;">?</span></label>
             <input type="range" id="sliderF" min="100" max="250" value="150" step="10">
         </div>
     </div>
 
     <div id="canvas-wrapper">
         <canvas id="simCanvas"></canvas>
+        <canvas id="drawingCanvas"></canvas>
         <div id="info-overlay">Yükleniyor...</div>
     </div>
 
 <script>
     const wrapper = document.getElementById('canvas-wrapper');
-    const canvas = document.getElementById('simCanvas');
-    const ctx = canvas.getContext('2d');
+    const simCanvas = document.getElementById('simCanvas');
+    const ctx = simCanvas.getContext('2d');
+    const drawCanvas = document.getElementById('drawingCanvas');
+    const ctxDraw = drawCanvas.getContext('2d');
     const infoOverlay = document.getElementById('info-overlay');
     
     const btnModeIsin = document.getElementById('btnModeIsin');
     const btnModeGoruntu = document.getElementById('btnModeGoruntu');
     const btnInce = document.getElementById('btnInce');
     const btnKalin = document.getElementById('btnKalin');
-    
     const btnShapeArrow = document.getElementById('btnShapeArrow');
     const btnShapeTriangle = document.getElementById('btnShapeTriangle');
-    const btnShapeF = document.getElementById('btnShapeF');
+
+    const btnPen = document.getElementById('btnPen');
+    const btnEraser = document.getElementById('btnEraser');
+    const btnClearDraw = document.getElementById('btnClearDraw');
 
     const checkAxis = document.getElementById('checkAxis');
     const checkO = document.getElementById('checkO');
@@ -133,333 +171,260 @@
     const checkRuler = document.getElementById('checkRuler');
     const sliderF = document.getElementById('sliderF');
     const valF = document.getElementById('valF');
+    const guessF = document.getElementById('guessF');
+    const guess2F = document.getElementById('guess2F');
+    const btnCheckGuess = document.getElementById('btnCheckGuess');
+    const teacherControls = document.getElementById('teacher-controls');
+    const discoveryPanel = document.querySelector('.discovery-panel');
 
     const C_ACCENT = '#00f2fe';
     const C_LASER = '#ff0055';
     const C_OBJ = '#39ff14';
     const C_IMG = '#ffbd00';
+    const C_GUESS = '#ffbd00';
 
     let width, height;
     let currentMode = 'isin';
     let lensType = 'ince'; 
     let currentShape = 'arrow'; 
-    let F_val = 150; 
+    let F_val = Math.floor(Math.random() * 11) * 10 + 100; 
+    sliderF.value = F_val;
     
-    let showAxis = false; let showO = false; let showF = false; let show2F = false;
-    let showRuler = true;
+    let showAxis = false; let showO = false; let showF = false; let show2F = false; let showRuler = true;
+    let isDiscoveryComplete = false;
     
     let laser = { x: 100, y: 300, angle: 0, isDraggingBody: false, isDraggingTip: false };
     let obj = { x: 150, h: 80, isDragging: false }; 
-    let ruler = { x: -1000, y: -1000, w: 400, h: 40, isDragging: false, offX: 0, offY: 0 }; 
+    let ruler = { cx: -1000, cy: -1000, w: 400, h: 40, angle: 0, isDragging: false, isRotating: false, offX: 0, offY: 0 }; 
+    let guessAxis = { y: -1000, isDragging: false }; 
+    let guessO = { x: 100, y: 100, isDragging: false };
 
     const shapesDefinition = {
         arrow: [{x1:0, y1:0, x2:0, y2:-80, isTip: true, hasArrowHead: true}],
-        triangle: [{x1:0, y1:0, x2:60, y2:0}, {x1:0, y1:0, x2:30, y2:-70, isTip: true}, {x1:60, y1:0, x2:30, y2:-70}],
-        letterF: [{x1:0, y1:0, x2:0, y2:-80, isTip: true}, {x1:0, y1:-80, x2:40, y2:-80}, {x1:0, y1:-40, x2:30, y2:-40}]
+        triangle: [{x1:0, y1:0, x2:60, y2:0}, {x1:0, y1:0, x2:30, y2:-70, isTip: true}, {x1:60, y1:0, x2:30, y2:-70}]
     };
+
+    let isDrawingMode = false;
+    let currentDrawTool = 'pen';
+    let isDrawing = false;
+    let lastDrawX = 0, lastDrawY = 0;
 
     function resize() {
         width = wrapper.clientWidth; height = wrapper.clientHeight;
-        canvas.width = width; canvas.height = height;
-        
+        simCanvas.width = width; simCanvas.height = height;
+        drawCanvas.width = width; drawCanvas.height = height;
+        ctxDraw.lineCap = 'round'; ctxDraw.lineJoin = 'round';
+
         if (laser.y > height) laser.y = height / 2 + 50; 
-        
-        // Cetvel sınır kontrolü
-        if (ruler.x === -1000) { 
-            ruler.x = width / 2 - 200; ruler.y = height - 100; 
-        } else {
-            // Ekran küçüldüğünde cetvel dışarıda kalmasın
-            if (ruler.y > height - ruler.h - 10) ruler.y = height - ruler.h - 10;
-            if (ruler.x > width - 50) ruler.x = width - 200;
-        }
+        if (guessAxis.y === -1000) { guessAxis.y = 50; guessO.x = width - 100; guessO.y = height - 100; }
+        if (ruler.cx === -1000) { ruler.cx = width / 2; ruler.cy = height - 100; } 
+        else { if (ruler.cy > height - 20) ruler.cy = height - 40; if (ruler.cx > width - 20) ruler.cx = width - 40; }
         draw();
     }
     window.addEventListener('resize', resize);
 
-    // --- MOD VE DÜĞME İŞLEMLERİ ---
-    btnModeIsin.onclick = () => setMode('isin');
-    btnModeGoruntu.onclick = () => setMode('goruntu');
-    btnInce.onclick = () => setLens('ince');
-    btnKalin.onclick = () => setLens('kalin');
-    
-    btnShapeArrow.onclick = () => setShape('arrow');
-    btnShapeTriangle.onclick = () => setShape('triangle');
-    btnShapeF.onclick = () => setShape('letterF');
+    // --- ÇİZİM İŞLEMLERİ ---
+    function toggleDrawMode(tool) {
+        if (currentDrawTool === tool && isDrawingMode) {
+            isDrawingMode = false;
+            btnPen.classList.remove('active'); btnEraser.classList.remove('active');
+            document.body.classList.remove('is-drawing'); document.body.classList.remove('eraser-active');
+        } else {
+            isDrawingMode = true; currentDrawTool = tool;
+            btnPen.classList.toggle('active', tool === 'pen'); btnEraser.classList.toggle('active', tool === 'eraser');
+            document.body.classList.add('is-drawing'); document.body.classList.toggle('eraser-active', tool === 'eraser');
+        }
+    }
+    btnPen.onclick = () => toggleDrawMode('pen');
+    btnEraser.onclick = () => toggleDrawMode('eraser');
+    btnClearDraw.onclick = () => { if (confirm('Tüm çizimler silinecek. Emin misiniz?')) ctxDraw.clearRect(0, 0, width, height); };
 
-    checkAxis.onchange = (e) => { showAxis = e.target.checked; draw(); };
-    checkO.onchange = (e) => { showO = e.target.checked; draw(); };
-    checkF.onchange = (e) => { showF = e.target.checked; draw(); };
-    check2F.onchange = (e) => { show2F = e.target.checked; draw(); };
+    function startDrawing(e) {
+        if (!isDrawingMode) return; e.preventDefault(); isDrawing = true;
+        const rect = drawCanvas.getBoundingClientRect();
+        lastDrawX = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; lastDrawY = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        ctxDraw.beginPath(); ctxDraw.moveTo(lastDrawX, lastDrawY); drawOnCanvas(e); 
+    }
+    function drawOnCanvas(e) {
+        if (!isDrawing || !isDrawingMode) return; e.preventDefault();
+        const rect = drawCanvas.getBoundingClientRect();
+        const currentX = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; const currentY = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        if (currentDrawTool === 'pen') { ctxDraw.globalCompositeOperation = 'source-over'; ctxDraw.strokeStyle = '#ffbd00'; ctxDraw.lineWidth = 3; } 
+        else if (currentDrawTool === 'eraser') { ctxDraw.globalCompositeOperation = 'destination-out'; ctxDraw.lineWidth = 20; }
+        ctxDraw.lineTo(currentX, currentY); ctxDraw.stroke(); lastDrawX = currentX; lastDrawY = currentY;
+    }
+    function stopDrawing() { isDrawing = false; ctxDraw.closePath(); }
+    drawCanvas.addEventListener('mousedown', startDrawing); drawCanvas.addEventListener('mousemove', drawOnCanvas); drawCanvas.addEventListener('mouseup', stopDrawing); drawCanvas.addEventListener('mouseout', stopDrawing);
+    drawCanvas.addEventListener('touchstart', startDrawing, {passive: false}); drawCanvas.addEventListener('touchmove', drawOnCanvas, {passive: false}); drawCanvas.addEventListener('touchend', stopDrawing);
+
+    // --- KONTROLLER ---
+    btnModeIsin.onclick = () => setMode('isin'); btnModeGoruntu.onclick = () => setMode('goruntu');
+    btnInce.onclick = () => setLens('ince'); btnKalin.onclick = () => setLens('kalin');
+    btnShapeArrow.onclick = () => setShape('arrow'); btnShapeTriangle.onclick = () => setShape('triangle');
+
+    const updateFLabel = () => { valF.innerText = (showF || show2F || isDiscoveryComplete) ? F_val : '?'; };
+    checkAxis.onchange = (e) => { showAxis = e.target.checked; draw(); }; checkO.onchange = (e) => { showO = e.target.checked; draw(); };
+    checkF.onchange = (e) => { showF = e.target.checked; updateFLabel(); draw(); }; check2F.onchange = (e) => { show2F = e.target.checked; updateFLabel(); draw(); };
     checkRuler.onchange = (e) => { showRuler = e.target.checked; draw(); };
-    
-    sliderF.oninput = (e) => { F_val = parseInt(e.target.value); valF.innerText = F_val; draw(); };
+    sliderF.oninput = (e) => { F_val = parseInt(e.target.value); resetDiscovery(); updateFLabel(); draw(); };
+
+    function resetDiscovery() {
+        isDiscoveryComplete = false; checkAxis.checked = false; showAxis = false; checkO.checked = false; showO = false; checkF.checked = false; showF = false; check2F.checked = false; show2F = false;
+        guessF.value = ''; guess2F.value = ''; 
+        
+        if (currentMode === 'goruntu') {
+            discoveryPanel.style.display = 'none';
+            teacherControls.style.display = 'flex';
+        } else {
+            discoveryPanel.style.display = 'flex';
+            teacherControls.style.display = 'none';
+        }
+        
+        guessAxis.y = 50; guessO.x = width - 100; guessO.y = height - 100;
+    }
+
+    btnCheckGuess.onclick = () => {
+        let f_g = parseInt(guessF.value); let f2_g = parseInt(guess2F.value);
+        const centerY = height / 2; const centerX = width > 600 ? width / 2 + 100 : width / 2 + 50; 
+        let errors = [];
+        if (Math.abs(guessAxis.y - centerY) > 15) errors.push("Asal Eksen yanlış yerde!");
+        if (Math.abs(guessO.x - centerX) > 15 || Math.abs(guessO.y - centerY) > 15) errors.push("Optik Merkez yanlış yerde!");
+        if(isNaN(f_g) || isNaN(f2_g)) errors.push("F ve 2F değerlerini girin.");
+        else { if (Math.abs(f_g - F_val) > 5) errors.push("Odak (F) hatalı."); if (Math.abs(f2_g - (F_val * 2)) > 10) errors.push("2F hatalı."); }
+
+        if (errors.length === 0) {
+            alert('🎉 MÜKEMMEL! Hepsini doğru keşfettin!');
+            isDiscoveryComplete = true; checkAxis.checked = true; showAxis = true; checkO.checked = true; showO = true; checkF.checked = true; showF = true; check2F.checked = true; show2F = true;
+            discoveryPanel.style.display = 'none'; teacherControls.style.display = 'flex'; updateFLabel(); draw();
+        } else { alert("Hatalar: " + errors.join(", ")); }
+    };
 
     function setMode(mode) {
-        currentMode = mode;
-        document.body.className = 'mode-' + mode; 
-        btnModeIsin.classList.toggle('active', mode === 'isin');
-        btnModeGoruntu.classList.toggle('active', mode === 'goruntu');
+        currentMode = mode; document.body.className = 'mode-' + mode + (isDrawingMode ? ' is-drawing' : '') + (currentDrawTool === 'eraser' ? ' eraser-active' : '');
+        btnModeIsin.classList.toggle('active', mode === 'isin'); btnModeGoruntu.classList.toggle('active', mode === 'goruntu'); 
         
-        // ÖNEMLİ DÜZELTME: Mod değiştiğinde üst menünün yüksekliği değişebilir.
-        // Canvas alanını yeniden hesaplaması için resize fonksiyonunu çağırıyoruz.
+        if (mode === 'goruntu' || isDiscoveryComplete) {
+            discoveryPanel.style.display = 'none';
+            teacherControls.style.display = 'flex';
+        } else {
+            discoveryPanel.style.display = 'flex';
+            teacherControls.style.display = 'none';
+        }
+        
         setTimeout(resize, 30); 
     }
-    
-    function setLens(type) {
-        lensType = type;
-        btnInce.classList.toggle('active', type === 'ince');
-        btnKalin.classList.toggle('active', type === 'kalin');
-        draw();
-    }
-    
-    function setShape(shape) {
-        currentShape = shape;
-        btnShapeArrow.classList.toggle('active', shape === 'arrow');
-        btnShapeTriangle.classList.toggle('active', shape === 'triangle');
-        btnShapeF.classList.toggle('active', shape === 'letterF');
-        draw();
-    }
+    function setLens(type) { lensType = type; btnInce.classList.toggle('active', type === 'ince'); btnKalin.classList.toggle('active', type === 'kalin'); draw(); }
+    function setShape(shape) { currentShape = shape; btnShapeArrow.classList.toggle('active', shape === 'arrow'); btnShapeTriangle.classList.toggle('active', shape === 'triangle'); draw(); }
 
-    // --- ETKİLEŞİM YÖNETİMİ ---
+    // --- ANA TUVAL ETKİLEŞİMİ ---
     function handleStart(e) {
-        if(e.type === 'touchstart') e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; 
-        const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-        const centerY = height / 2;
-
-        if (showRuler && mx >= ruler.x && mx <= ruler.x + ruler.w && my >= ruler.y && my <= ruler.y + ruler.h) {
-            ruler.isDragging = true; ruler.offX = mx - ruler.x; ruler.offY = my - ruler.y; return;
+        if (isDrawingMode) return; if(e.type === 'touchstart') e.preventDefault();
+        const rect = simCanvas.getBoundingClientRect(); const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top; const centerY = height / 2;
+        
+        if (!isDiscoveryComplete && currentMode === 'isin') { 
+            if (Math.hypot(mx - guessO.x, my - guessO.y) < 20) { guessO.isDragging = true; return; } 
+            if (Math.abs(my - guessAxis.y) < 15) { guessAxis.isDragging = true; return; } 
         }
-
+        
+        if (showRuler) {
+            let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s; let localY = dx * s + dy * c;
+            if (Math.hypot(localX - (ruler.w/2 + 25), localY) < 25) { ruler.isRotating = true; return; }
+            if (localX >= -ruler.w/2 && localX <= ruler.w/2 && localY >= -ruler.h/2 && localY <= ruler.h/2) { ruler.isDragging = true; ruler.offX = mx - ruler.cx; ruler.offY = my - ruler.cy; return; }
+        }
         if (currentMode === 'isin') {
             let tipX = laser.x + Math.cos(laser.angle) * 55; let tipY = laser.y + Math.sin(laser.angle) * 55;
             if (Math.hypot(mx - tipX, my - tipY) < 35) { laser.isDraggingTip = true; return; }
             if (Math.hypot(mx - laser.x, my - laser.y) < 50) { laser.isDraggingBody = true; return; }
         } else {
-            if (Math.abs(mx - obj.x) < 50 && my > centerY - 100 && my < centerY + 20) {
-                obj.isDragging = true; return;
-            }
+            if (Math.abs(mx - obj.x) < 50 && my > centerY - 100 && my < centerY + 20) { obj.isDragging = true; return; }
         }
     }
-
     function handleMove(e) {
-        if(e.type === 'touchmove') e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; 
-        const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-        const centerY = height / 2;
-
-        if (ruler.isDragging) { ruler.x = mx - ruler.offX; ruler.y = my - ruler.offY; draw(); canvas.style.cursor = 'grabbing'; return; }
-        if (laser.isDraggingBody) { laser.x = mx; laser.y = my; draw(); canvas.style.cursor = 'grabbing'; return; }
-        if (laser.isDraggingTip) { laser.angle = Math.atan2(my - laser.y, mx - laser.x); draw(); canvas.style.cursor = 'grabbing'; return; }
-        if (obj.isDragging) {
-            let limitX = width / 2 + (width > 600 ? 80 : 30); 
-            obj.x = Math.min(mx, limitX); draw(); canvas.style.cursor = 'grabbing'; return;
-        }
+        if (isDrawingMode) return; if(e.type === 'touchmove') e.preventDefault();
+        const rect = simCanvas.getBoundingClientRect(); const mx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left; const my = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        if (guessO.isDragging) { guessO.x = mx; guessO.y = my; draw(); simCanvas.style.cursor = 'grabbing'; return; }
+        if (guessAxis.isDragging) { guessAxis.y = my; draw(); simCanvas.style.cursor = 'ns-resize'; return; }
+        if (ruler.isRotating) { ruler.angle = Math.atan2(my - ruler.cy, mx - ruler.cx); draw(); simCanvas.style.cursor = 'grabbing'; return; }
+        if (ruler.isDragging) { ruler.cx = mx - ruler.offX; ruler.cy = my - ruler.offY; draw(); simCanvas.style.cursor = 'grabbing'; return; }
+        if (laser.isDraggingBody) { laser.x = mx; laser.y = my; draw(); simCanvas.style.cursor = 'grabbing'; return; }
+        if (laser.isDraggingTip) { laser.angle = Math.atan2(my - laser.y, mx - laser.x); draw(); simCanvas.style.cursor = 'grabbing'; return; }
+        if (obj.isDragging) { obj.x = Math.min(mx, width/2 + 80); draw(); simCanvas.style.cursor = 'grabbing'; return; }
 
         let isHovering = false;
-        if (showRuler && mx >= ruler.x && mx <= ruler.x + ruler.w && my >= ruler.y && my <= ruler.y + ruler.h) isHovering = true;
-        
+        if (!isDiscoveryComplete && currentMode === 'isin') { 
+            if (Math.hypot(mx - guessO.x, my - guessO.y) < 20 || Math.abs(my - guessAxis.y) < 15) isHovering = true; 
+        }
+        if (showRuler) {
+            let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s; let localY = dx * s + dy * c;
+            if (Math.hypot(localX - (ruler.w/2 + 25), localY) < 25 || (localX >= -ruler.w/2 && localX <= ruler.w/2 && localY >= -ruler.h/2 && localY <= ruler.h/2)) isHovering = true;
+        }
         if (!isHovering) {
             if (currentMode === 'isin') {
                 let tipX = laser.x + Math.cos(laser.angle) * 55; let tipY = laser.y + Math.sin(laser.angle) * 55;
                 if (Math.hypot(mx - tipX, my - tipY) < 35 || Math.hypot(mx - laser.x, my - laser.y) < 50) isHovering = true;
-            } else {
-                if (Math.abs(mx - obj.x) < 50 && my > centerY - 100 && my < centerY + 20) isHovering = true;
-            }
+            } else { if (Math.abs(mx - obj.x) < 50 && my > (height/2) - 100 && my < (height/2) + 20) isHovering = true; }
         }
-        canvas.style.cursor = isHovering ? 'grab' : 'crosshair';
+        simCanvas.style.cursor = isHovering ? 'grab' : 'crosshair';
     }
+    const stopDrag = () => { guessO.isDragging = false; guessAxis.isDragging = false; ruler.isDragging = false; ruler.isRotating = false; laser.isDraggingBody = false; laser.isDraggingTip = false; obj.isDragging = false; simCanvas.style.cursor = 'crosshair'; };
+    simCanvas.addEventListener('mousedown', handleStart); simCanvas.addEventListener('mousemove', handleMove); simCanvas.addEventListener('mouseup', stopDrag); simCanvas.addEventListener('mouseleave', stopDrag);
+    simCanvas.addEventListener('touchstart', handleStart, {passive: false}); simCanvas.addEventListener('touchmove', handleMove, {passive: false}); simCanvas.addEventListener('touchend', stopDrag);
 
-    const stopDrag = () => { ruler.isDragging = false; laser.isDraggingBody = false; laser.isDraggingTip = false; obj.isDragging = false; canvas.style.cursor = 'crosshair'; };
-
-    canvas.addEventListener('mousedown', handleStart); canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('mouseup', stopDrag); canvas.addEventListener('mouseleave', stopDrag);
-    canvas.addEventListener('touchstart', handleStart, {passive: false}); canvas.addEventListener('touchmove', handleMove, {passive: false});
-    canvas.addEventListener('touchend', stopDrag);
-
-    // --- ÇİZİM MOTORU ---
+    // --- SİMÜLASYON ÇİZİMİ ---
     function draw() {
-        ctx.clearRect(0, 0, width, height);
-        const centerY = height / 2;
-        const centerX = width > 600 ? width / 2 + 100 : width / 2 + 50; 
-        const O_x = centerX; 
+        ctx.clearRect(0, 0, width, height); 
+        const centerY = height / 2; const centerX = width > 600 ? width / 2 + 100 : width / 2 + 50; const O_x = centerX; 
+        drawAxis(centerY, O_x); drawLensBody(centerY, O_x); 
+        if (currentMode === 'isin') { drawModernLaser(); calculateAndDrawRefraction(O_x, centerY); updateInfoRayMode(); } 
+        else { drawComplexShapeMode(centerY, O_x); }
+        drawSymmetricPoints(centerY, O_x); 
         
-        drawAxis(centerY, O_x);
-        drawLensBody(centerY, O_x); 
-
-        if (currentMode === 'isin') {
-            drawModernLaser();
-            calculateAndDrawRefraction(O_x, centerY);
-            updateInfoRayMode();
-        } else {
-            drawComplexShapeMode(centerY, O_x);
-        }
-        
-        drawSymmetricPoints(centerY, O_x);
+        if (!isDiscoveryComplete && currentMode === 'isin') { drawGuessMarkers(); } 
         drawPortableRuler();
     }
 
+    // --- IŞIN, CİSİM VE MERCEK ÇİZİM FONKSİYONLARI ---
+    function drawGuessMarkers() {
+        ctx.beginPath(); ctx.moveTo(0, guessAxis.y); ctx.lineTo(width, guessAxis.y); ctx.strokeStyle = C_GUESS; ctx.lineWidth = 2; ctx.setLineDash([10, 8]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = C_GUESS; ctx.font = 'bold 12px Segoe UI'; ctx.textAlign = 'left'; ctx.fillText('↕ Sürükle: Asal Eksen Tahmini', 20, guessAxis.y - 8);
+        ctx.beginPath(); ctx.arc(guessO.x, guessO.y, 10, 0, Math.PI*2); ctx.fillStyle = 'rgba(255, 189, 0, 0.3)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = C_GUESS; ctx.stroke(); ctx.beginPath(); ctx.moveTo(guessO.x - 18, guessO.y); ctx.lineTo(guessO.x + 18, guessO.y); ctx.moveTo(guessO.x, guessO.y - 18); ctx.lineTo(guessO.x, guessO.y + 18); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillText('Sürükle: Optik Merkez', guessO.x, guessO.y - 18);
+    }
     function drawAxis(centerY, O_x) {
-        if (!showAxis) return; 
-        ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(width, centerY);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 1.5; ctx.stroke();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 2;
-        for (let x = O_x; x > 0; x -= 50) { ctx.beginPath(); ctx.moveTo(x, centerY - 6); ctx.lineTo(x, centerY + 6); ctx.stroke(); }
-        for (let x = O_x; x < width; x += 50) { ctx.beginPath(); ctx.moveTo(x, centerY - 6); ctx.lineTo(x, centerY + 6); ctx.stroke(); }
+        if (!showAxis) return; ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(width, centerY); ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 2;
+        for (let x = O_x; x > 0; x -= 50) { ctx.beginPath(); ctx.moveTo(x, centerY - 6); ctx.lineTo(x, centerY + 6); ctx.stroke(); } for (let x = O_x; x < width; x += 50) { ctx.beginPath(); ctx.moveTo(x, centerY - 6); ctx.lineTo(x, centerY + 6); ctx.stroke(); }
     }
-    
     function drawSymmetricPoints(centerY, O_x) {
-        ctx.font = 'bold 12px Segoe UI'; ctx.textAlign = 'center';
-        const drawPoint = (x, label) => {
-            ctx.beginPath(); ctx.arc(x, centerY, 5, 0, Math.PI*2); 
-            ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#000000'; ctx.stroke();
-            ctx.fillStyle = C_ACCENT; ctx.shadowBlur = 4; ctx.shadowColor = '#000000';
-            ctx.fillText(label, x, centerY + 24); ctx.shadowBlur = 0; 
-        };
-        
-        if (showO) drawPoint(O_x, 'Optik Merkez'); 
-        if (showF) { drawPoint(O_x - F_val, 'F'); drawPoint(O_x + F_val, 'F'); }
-        if (show2F) { drawPoint(O_x - 2*F_val, '2F'); drawPoint(O_x + 2*F_val, '2F'); }
+        ctx.font = 'bold 12px Segoe UI'; ctx.textAlign = 'center'; const drawPoint = (x, label) => { ctx.beginPath(); ctx.arc(x, centerY, 5, 0, Math.PI*2); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#000000'; ctx.stroke(); ctx.fillStyle = C_ACCENT; ctx.shadowBlur = 4; ctx.shadowColor = '#000000'; ctx.fillText(label, x, centerY + 24); ctx.shadowBlur = 0; };
+        if (showO) drawPoint(O_x, 'O'); if (showF) { drawPoint(O_x - F_val, 'F'); drawPoint(O_x + F_val, 'F'); } if (show2F) { drawPoint(O_x - 2*F_val, '2F'); drawPoint(O_x + 2*F_val, '2F'); }
     }
-    
     function drawLensBody(centerY, O_x) {
-        let lensHeight = 160; let lensWidth = 30;
-        ctx.beginPath();
-        if (lensType === 'ince') {
-            ctx.moveTo(O_x, centerY - lensHeight);
-            ctx.quadraticCurveTo(O_x + lensWidth, centerY, O_x, centerY + lensHeight);
-            ctx.quadraticCurveTo(O_x - lensWidth, centerY, O_x, centerY - lensHeight);
-        } else {
-            ctx.moveTo(O_x - lensWidth/2, centerY - lensHeight); ctx.lineTo(O_x + lensWidth/2, centerY - lensHeight);
-            ctx.quadraticCurveTo(O_x + 5, centerY, O_x + lensWidth/2, centerY + lensHeight);
-            ctx.lineTo(O_x - lensWidth/2, centerY + lensHeight); ctx.quadraticCurveTo(O_x - 5, centerY, O_x - lensWidth/2, centerY - lensHeight);
-        }
-        ctx.fillStyle = 'rgba(0, 242, 254, 0.15)'; ctx.fill();
-        ctx.strokeStyle = C_ACCENT; ctx.lineWidth = 2; ctx.lineCap = 'round';
-        ctx.shadowBlur = 15; ctx.shadowColor = C_ACCENT; ctx.stroke(); ctx.shadowBlur = 0;
-        
-        ctx.beginPath(); ctx.moveTo(O_x, centerY - lensHeight - 20); ctx.lineTo(O_x, centerY + lensHeight + 20);
-        ctx.strokeStyle = 'rgba(0, 242, 254, 0.3)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+        let lensHeight = 160; let lensWidth = 30; ctx.beginPath();
+        if (lensType === 'ince') { ctx.moveTo(O_x, centerY - lensHeight); ctx.quadraticCurveTo(O_x + lensWidth, centerY, O_x, centerY + lensHeight); ctx.quadraticCurveTo(O_x - lensWidth, centerY, O_x, centerY - lensHeight); } 
+        else { ctx.moveTo(O_x - lensWidth/2, centerY - lensHeight); ctx.lineTo(O_x + lensWidth/2, centerY - lensHeight); ctx.quadraticCurveTo(O_x + 5, centerY, O_x + lensWidth/2, centerY + lensHeight); ctx.lineTo(O_x - lensWidth/2, centerY + lensHeight); ctx.quadraticCurveTo(O_x - 5, centerY, O_x - lensWidth/2, centerY - lensHeight); }
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.15)'; ctx.fill(); ctx.strokeStyle = C_ACCENT; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.shadowBlur = 15; ctx.shadowColor = C_ACCENT; ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.moveTo(O_x, centerY - lensHeight - 20); ctx.lineTo(O_x, centerY + lensHeight + 20); ctx.strokeStyle = 'rgba(0, 242, 254, 0.3)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
     }
-
     function drawPortableRuler() {
-        if (!showRuler) return;
-        ctx.save(); ctx.translate(ruler.x, ruler.y);
-        ctx.fillStyle = 'rgba(0, 242, 254, 0.1)'; ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)'; ctx.lineWidth = 1;
-        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(0, 0, ruler.w, ruler.h, 6); else ctx.rect(0, 0, ruler.w, ruler.h);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = C_ACCENT; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
-        for (let i = 0; i <= ruler.w; i += 10) {
-            let isMajor = (i % 50 === 0); let tickH = isMajor ? 12 : 6;
-            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, tickH); ctx.stroke();
-            if (isMajor) ctx.fillText(i, i, tickH + 12);
-        }
-        ctx.restore();
+        if (!showRuler) return; ctx.save(); ctx.translate(ruler.cx, ruler.cy); ctx.rotate(ruler.angle); ctx.fillStyle = 'rgba(0, 242, 254, 0.1)'; ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)'; ctx.lineWidth = 1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h, 6); else ctx.rect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h); ctx.fill(); ctx.stroke(); ctx.fillStyle = C_ACCENT; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
+        for (let i = 0; i <= ruler.w; i += 10) { let isMajor = (i % 50 === 0); let tickH = isMajor ? 12 : 6; let rx = -ruler.w/2 + i; ctx.beginPath(); ctx.moveTo(rx, -ruler.h/2); ctx.lineTo(rx, -ruler.h/2 + tickH); ctx.stroke(); if (isMajor) ctx.fillText(i, rx, -ruler.h/2 + tickH + 12); }
+        ctx.beginPath(); ctx.arc(ruler.w/2 + 25, 0, 12, 0, Math.PI*2); ctx.fillStyle = 'rgba(57, 255, 20, 0.5)'; ctx.fill(); ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.fillText('↻', ruler.w/2 + 25, 5); ctx.restore();
     }
-    
     function drawModernLaser() {
-        ctx.save(); ctx.translate(laser.x, laser.y); ctx.rotate(laser.angle);
-        let grad = ctx.createLinearGradient(-40, -15, 40, 15); 
-        grad.addColorStop(0, '#222'); grad.addColorStop(0.5, '#444'); grad.addColorStop(1, '#222');
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(-40, -10); ctx.lineTo(25, -10); ctx.lineTo(40, -5); ctx.lineTo(40, 5); ctx.lineTo(25, 10); ctx.lineTo(-40, 10); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = C_ACCENT; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-20, -10); ctx.lineTo(-20, 10); ctx.moveTo(10, -10); ctx.lineTo(10, 10); ctx.stroke();
-        ctx.shadowBlur = 20; ctx.shadowColor = C_LASER; ctx.fillStyle = laser.isDraggingTip ? '#fff' : C_LASER; ctx.beginPath(); ctx.arc(45, 0, 6, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = C_LASER; ctx.beginPath(); ctx.arc(48, 0, 3, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.translate(laser.x, laser.y); ctx.rotate(laser.angle); let grad = ctx.createLinearGradient(-40, -15, 40, 15); grad.addColorStop(0, '#222'); grad.addColorStop(0.5, '#444'); grad.addColorStop(1, '#222'); ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(-40, -10); ctx.lineTo(25, -10); ctx.lineTo(40, -5); ctx.lineTo(40, 5); ctx.lineTo(25, 10); ctx.lineTo(-40, 10); ctx.closePath(); ctx.fill(); ctx.strokeStyle = C_ACCENT; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-20, -10); ctx.lineTo(-20, 10); ctx.moveTo(10, -10); ctx.lineTo(10, 10); ctx.stroke(); ctx.shadowBlur = 20; ctx.shadowColor = C_LASER; ctx.fillStyle = laser.isDraggingTip ? '#fff' : C_LASER; ctx.beginPath(); ctx.arc(45, 0, 6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = C_LASER; ctx.beginPath(); ctx.arc(48, 0, 3, 0, Math.PI*2); ctx.fill(); ctx.restore();
     }
-    
     function calculateAndDrawRefraction(O_x, centerY) {
-        let dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
-        let startX = laser.x + 48 * dx, startY = laser.y + 48 * dy;
-        
+        let dx = Math.cos(laser.angle), dy = Math.sin(laser.angle); let startX = laser.x + 48 * dx, startY = laser.y + 48 * dy;
         if (dx <= 0.001) { ctx.strokeStyle = C_LASER; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(startX + dx*2000, startY + dy*2000); ctx.stroke(); return; }
-
-        let t = (O_x - startX) / dx; let y_hit = startY + t * dy;
-        let isHit = (t > 0) && (Math.abs(y_hit - centerY) <= 160); 
-        
-        ctx.strokeStyle = C_LASER; ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = C_LASER;
-        ctx.beginPath(); ctx.moveTo(startX, startY);
-
+        let t = (O_x - startX) / dx; let y_hit = startY + t * dy; let isHit = (t > 0) && (Math.abs(y_hit - centerY) <= 160); ctx.strokeStyle = C_LASER; ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = C_LASER; ctx.beginPath(); ctx.moveTo(startX, startY);
         if (isHit) {
-            ctx.lineTo(O_x, y_hit); ctx.stroke(); ctx.shadowBlur = 0;
-            let y_i = y_hit - centerY; 
-            let m1 = dy / dx;          
-            let Power = lensType === 'ince' ? (1/F_val) : (-1/F_val);
-            let m2 = m1 - (y_i * Power); 
-            let angle2 = Math.atan(m2);
-            let rx = Math.cos(angle2); let ry = Math.sin(angle2);
-
-            ctx.strokeStyle = C_LASER; ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = C_LASER;
-            ctx.beginPath(); ctx.moveTo(O_x, y_hit); ctx.lineTo(O_x + rx*3000, y_hit + ry*3000); ctx.stroke(); ctx.shadowBlur = 0;
-            
-            if (lensType === 'kalin' || (lensType === 'ince' && O_x - startX < F_val && dy/dx !== m2)) {
-                 drawDashedLine(O_x, y_hit, O_x - rx*2000, y_hit - ry*2000, 'rgba(255, 0, 85, 0.4)');
-            }
+            ctx.lineTo(O_x, y_hit); ctx.stroke(); ctx.shadowBlur = 0; let y_i = y_hit - centerY; let Power = lensType === 'ince' ? (1/F_val) : (-1/F_val); let m2 = (dy / dx) - (y_i * Power); let angle2 = Math.atan(m2); let rx = Math.cos(angle2); let ry = Math.sin(angle2);
+            ctx.strokeStyle = C_LASER; ctx.lineWidth = 3; ctx.shadowBlur = 20; ctx.shadowColor = C_LASER; ctx.beginPath(); ctx.moveTo(O_x, y_hit); ctx.lineTo(O_x + rx*3000, y_hit + ry*3000); ctx.stroke(); ctx.shadowBlur = 0;
+            if (lensType === 'kalin' || (lensType === 'ince' && O_x - startX < F_val && dy/dx !== m2)) { drawDashedLine(O_x, y_hit, O_x - rx*2000, y_hit - ry*2000, 'rgba(255, 0, 85, 0.4)'); }
         } else { ctx.lineTo(startX + dx*3000, startY + dy*3000); ctx.stroke(); ctx.shadowBlur = 0; }
     }
-
-    function calculateImagePointLens(objX, objY, centerY, O_x) {
-        let d_o = O_x - objX; 
-        let f_işaretli = lensType === 'ince' ? F_val : -F_val;
-        if (Math.abs(d_o - f_işaretli) < 0.5 && lensType === 'ince') return null;
-        let d_i = (d_o * f_işaretli) / (d_o - f_işaretli);
-        let m = -d_i / d_o; 
-        let imgX = O_x + d_i; 
-        let h_o = centerY - objY; 
-        let h_i = h_o * m; 
-        let imgY = centerY - h_i;
-        return { x: imgX, y: imgY, d_i: d_i, m: m };
-    }
-
-    function drawComplexShapeMode(centerY, O_x) {
-        let shapeSegments = shapesDefinition[currentShape];
-        let tipPointObj = null; let mainImageInfo = null; 
-
-        ctx.strokeStyle = C_OBJ; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.beginPath();
-        let objArrowHeads = [];
-        shapeSegments.forEach(seg => {
-            let absX1 = obj.x + seg.x1; let absY1 = centerY + seg.y1;
-            let absX2 = obj.x + seg.x2; let absY2 = centerY + seg.y2;
-            ctx.moveTo(absX1, absY1); ctx.lineTo(absX2, absY2);
-            if(seg.isTip && seg.hasArrowHead) objArrowHeads.push({x1: absX1, y1: absY1, x2: absX2, y2: absY2});
-            if(seg.isTip) tipPointObj = {x: absX2, y: absY2}; 
-        });
-        ctx.stroke(); 
-        
-        objArrowHeads.forEach(ah => { ctx.fillStyle = C_OBJ; ctx.strokeStyle = C_OBJ; drawArrowHead(ah.x1, ah.y1, ah.x2, ah.y2); });
-        ctx.fillStyle = C_OBJ; ctx.font = 'bold 14px Segoe UI'; 
-        ctx.fillText(currentShape === 'arrow' ? 'Cisim' : '', obj.x - 20, centerY + 30);
-
-        let isVirtual = false; let imgArrowHeads = [];
-        ctx.beginPath();
-        shapeSegments.forEach(seg => {
-            let p1_img = calculateImagePointLens(obj.x + seg.x1, centerY + seg.y1, centerY, O_x);
-            let p2_img = calculateImagePointLens(obj.x + seg.x2, centerY + seg.y2, centerY, O_x);
-            if (p1_img && p2_img) {
-                ctx.moveTo(p1_img.x, p1_img.y); ctx.lineTo(p2_img.x, p2_img.y);
-                if (p1_img.d_i < 0) isVirtual = true; 
-                if (seg.isTip) { mainImageInfo = p2_img; if(seg.hasArrowHead) imgArrowHeads.push({x1: p1_img.x, y1: p1_img.y, x2: p2_img.x, y2: p2_img.y}); }
-            }
-        });
-
-        ctx.strokeStyle = C_IMG; if (isVirtual) ctx.setLineDash([8, 5]); 
-        ctx.stroke(); ctx.setLineDash([]); 
-        imgArrowHeads.forEach(ah => { ctx.fillStyle = C_IMG; ctx.strokeStyle = C_IMG; drawArrowHead(ah.x1, ah.y1, ah.x2, ah.y2); });
-
-        if (tipPointObj && mainImageInfo) { drawLensPrincipalRays(tipPointObj.x, tipPointObj.y, mainImageInfo.x, mainImageInfo.y, centerY, O_x); }
-
-        let d_o_main = O_x - obj.x;
-        updateInfoImageMode(d_o_main, mainImageInfo ? mainImageInfo.d_i : null, mainImageInfo ? mainImageInfo.m : null);
-    }
     
-    function drawArrowHead(x1, y1, x2, y2) {
-        let angle = Math.atan2(y2-y1, x2-x1); let head = 14;
-        ctx.save(); ctx.beginPath(); ctx.moveTo(x2, y2);
-        ctx.lineTo(x2-head*Math.cos(angle-Math.PI/6), y2-head*Math.sin(angle-Math.PI/6));
-        ctx.lineTo(x2-head*Math.cos(angle+Math.PI/6), y2-head*Math.sin(angle+Math.PI/6));
-        ctx.closePath(); ctx.fill(); ctx.restore();
+    function drawDashedLine(x1, y1, x2, y2, color) {
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.stroke(); ctx.setLineDash([]);
     }
 
     function drawLensPrincipalRays(objX, objY, imgX, imgY, centerY, O_x) {
@@ -476,35 +441,45 @@
              ctx.beginPath(); ctx.moveTo(O_x, objY); ctx.lineTo(O_x + 1000, objY + 1000*m); ctx.stroke();
              drawDashedLine(O_x, objY, F_sol, centerY, 'rgba(255, 50, 100, 0.3)'); 
         }
+        
         ctx.strokeStyle = 'rgba(0, 242, 254, 0.5)'; ctx.beginPath(); ctx.moveTo(objX, objY); ctx.lineTo(O_x, centerY); 
-        let d_o = O_x - objX; let h_o = centerY - objY; let m_center = h_o / -d_o;
+        let m_center = (centerY - objY) / (O_x - objX);
         ctx.lineTo(O_x + 1000, centerY + 1000*m_center); ctx.stroke();
+        
         if (imgX < O_x) drawDashedLine(O_x, centerY, imgX, imgY, 'rgba(0, 242, 254, 0.3)'); 
     }
 
-    function drawDashedLine(x1, y1, x2, y2, color) {
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.stroke(); ctx.setLineDash([]);
-    }
-
-    function updateInfoRayMode() {
-        infoOverlay.innerHTML = `<div class="info-section">🔬 <span class="hl">Kırılma Modu</span></div><div class="info-divider"></div><div class="info-section">Lazerin gövdesini sürükleyin, ucundan açısını ayarlayın.</div>`;
+    function calculateImagePointLens(objX, objY, centerY, O_x) {
+        let d_o = O_x - objX; let f_işaretli = lensType === 'ince' ? F_val : -F_val;
+        if (Math.abs(d_o - f_işaretli) < 0.5 && lensType === 'ince') return null;
+        let d_i = (d_o * f_işaretli) / (d_o - f_işaretli); let m = -d_i / d_o; return { x: O_x + d_i, y: centerY - ((centerY - objY) * m), d_i: d_i, m: m };
     }
     
-    function updateInfoImageMode(d_o, d_i, m) {
-        if (d_i === null || isNaN(d_i)) { 
-            infoOverlay.innerHTML = `<div class="info-section">🔬 <span class="hl">Görüntü Modu</span></div><div class="info-divider"></div><div class="info-section"><span class="hl-obj">Cisim Odakta:</span> Işınlar paralel kırılır, görüntü sonsuzda.</div>`; return; 
+    function drawComplexShapeMode(centerY, O_x) {
+        let shapeSegments = shapesDefinition[currentShape]; let tipPointObj = null; let mainImageInfo = null; 
+        ctx.strokeStyle = C_OBJ; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+        let objArrowHeads = []; shapeSegments.forEach(seg => { let absX1 = obj.x + seg.x1; let absY1 = centerY + seg.y1; let absX2 = obj.x + seg.x2; let absY2 = centerY + seg.y2; ctx.moveTo(absX1, absY1); ctx.lineTo(absX2, absY2); if(seg.isTip && seg.hasArrowHead) objArrowHeads.push({x1: absX1, y1: absY1, x2: absX2, y2: absY2}); if(seg.isTip) tipPointObj = {x: absX2, y: absY2}; }); ctx.stroke(); 
+        objArrowHeads.forEach(ah => { let angle = Math.atan2(ah.y2-ah.y1, ah.x2-ah.x1); let head = 14; ctx.save(); ctx.beginPath(); ctx.moveTo(ah.x2, ah.y2); ctx.lineTo(ah.x2-head*Math.cos(angle-Math.PI/6), ah.y2-head*Math.sin(angle-Math.PI/6)); ctx.lineTo(ah.x2-head*Math.cos(angle+Math.PI/6), ah.y2-head*Math.sin(angle+Math.PI/6)); ctx.closePath(); ctx.fillStyle = C_OBJ; ctx.fill(); ctx.restore(); });
+        ctx.fillStyle = C_OBJ; ctx.font = 'bold 14px Segoe UI'; ctx.fillText(currentShape === 'arrow' ? 'Cisim' : '', obj.x - 20, centerY + 30);
+        let isVirtual = false; let imgArrowHeads = []; ctx.beginPath(); shapeSegments.forEach(seg => { let p1 = calculateImagePointLens(obj.x + seg.x1, centerY + seg.y1, centerY, O_x); let p2 = calculateImagePointLens(obj.x + seg.x2, centerY + seg.y2, centerY, O_x); if (p1 && p2) { ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); if (p1.d_i < 0) isVirtual = true; if (seg.isTip) { mainImageInfo = p2; if(seg.hasArrowHead) imgArrowHeads.push({x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y}); }} });
+        ctx.strokeStyle = C_IMG; if (isVirtual) ctx.setLineDash([8, 5]); ctx.stroke(); ctx.setLineDash([]); 
+        imgArrowHeads.forEach(ah => { let angle = Math.atan2(ah.y2-ah.y1, ah.x2-ah.x1); let head = 14; ctx.save(); ctx.beginPath(); ctx.moveTo(ah.x2, ah.y2); ctx.lineTo(ah.x2-head*Math.cos(angle-Math.PI/6), ah.y2-head*Math.sin(angle-Math.PI/6)); ctx.lineTo(ah.x2-head*Math.cos(angle+Math.PI/6), ah.y2-head*Math.sin(angle+Math.PI/6)); ctx.closePath(); ctx.fillStyle = C_IMG; ctx.fill(); ctx.restore(); });
+        
+        if (tipPointObj && mainImageInfo) { 
+            drawLensPrincipalRays(tipPointObj.x, tipPointObj.y, mainImageInfo.x, mainImageInfo.y, centerY, O_x); 
         }
-        let type = d_i > 0 ? "Gerçek (Karşıda)" : "Sanal (Cisimle Aynı Tarafta)";
-        let orient = m < 0 ? "Ters" : "Düz";
-        let size = Math.abs(m) > 1.05 ? "Büyük" : (Math.abs(m) < 0.95 ? "Küçük" : "Eşit");
-        infoOverlay.innerHTML = `
-            <div class="info-section">🔬 <span class="hl">Merceklerde Görüntü</span></div><div class="info-divider"></div>
-            <div class="info-section">📏 <span class="hl-obj">Cisim:</span> ${Math.round(d_o)}br</div><div class="info-divider"></div>
-            <div class="info-section">📏 <span class="hl-img">Görüntü:</span> ${Math.round(Math.abs(d_i))}br</div><div class="info-divider"></div>
-            <div class="info-section">🔎 ${Math.abs(m).toFixed(2)}x Büyütme</div><div class="info-divider"></div>
-            <div class="info-section">📌 ${type}, ${orient}, ${size}</div>
-        `;
+        
+        let d_o_main = O_x - obj.x; updateInfoImageMode(d_o_main, mainImageInfo ? mainImageInfo.d_i : null, mainImageInfo ? mainImageInfo.m : null);
+    }
+    
+    function updateInfoRayMode() {
+        if (!isDiscoveryComplete) infoOverlay.innerHTML = `<div class="info-section">🔬 <span class="hl">Keşif Görevi:</span></div><div class="info-divider"></div><div class="info-section">Lazer ışığını kullan, Asal Ekseni (↕) ve Optik Merkezi (☩) bul, sonra F'i ölç! (Çizim yapmak için Kalem'i kullanabilirsin)</div>`;
+        else infoOverlay.innerHTML = `<div class="info-section">🔬 <span class="hl">Kırılma Modu</span></div><div class="info-divider"></div><div class="info-section">İnceleme modundasınız.</div>`;
+    }
+    function updateInfoImageMode(d_o, d_i, m) {
+        if (d_i === null || isNaN(d_i)) { infoOverlay.innerHTML = `<div class="info-section">🔬 <span class="hl">Görüntü Modu</span></div><div class="info-divider"></div><div class="info-section"><span class="hl-obj">Cisim Odakta:</span> Görüntü sonsuzda.</div>`; return; }
+        let type = d_i > 0 ? "Gerçek" : "Sanal"; let orient = m < 0 ? "Ters" : "Düz"; let size = Math.abs(m) > 1.05 ? "Büyük" : (Math.abs(m) < 0.95 ? "Küçük" : "Eşit");
+        infoOverlay.innerHTML = `<div class="info-section">🔬 <span class="hl">Görüntü</span></div><div class="info-divider"></div><div class="info-section">📏<span class="hl-obj">C:</span>${Math.round(d_o)}br 📏<span class="hl-img">G:</span>${Math.round(Math.abs(d_i))}br</div><div class="info-divider"></div><div class="info-section">🔎${Math.abs(m).toFixed(2)}x (${type}, ${orient}, ${size})</div>`;
     }
 
     setTimeout(resize, 100);
