@@ -86,9 +86,48 @@
         .hl { font-weight: bold; color: var(--accent-color); }
         .hl-obj { font-weight: bold; color: #39ff14; }
         .hl-img { font-weight: bold; color: #ffbd00; }
+
+        /* Yönerge Popup Stilleri */
+        #intro-popup {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; 
+        }
+        .popup-content {
+            background: var(--panel-bg); border: 1px solid var(--accent-color);
+            padding: 30px; border-radius: 12px; max-width: 500px; width: 90%;
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.2);
+            text-align: center;
+        }
+        .popup-content h2 { color: #ffbd00; margin-top: 0; font-size: 24px; }
+        .popup-content p { color: #ccc; font-size: 15px; line-height: 1.6; text-align: left; margin-bottom: 15px; }
+        .popup-content ul { text-align: left; color: #e0e0e0; font-size: 15px; padding-left: 20px; margin-bottom: 25px; line-height: 1.6;}
+        .popup-content li { margin-bottom: 10px; }
+        .popup-content li strong { color: var(--accent-color); }
+        #btnStartMission {
+            background: var(--accent-color); color: #000; font-size: 16px;
+            padding: 10px 24px; border: none; border-radius: 8px;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+        }
+        #btnStartMission:hover { background: #fff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.6); }
     </style>
 </head>
 <body class="mode-isin">
+
+    <div id="intro-popup">
+        <div class="popup-content">
+            <h2>🎯 Keşif Görevine Hoş Geldin!</h2>
+            <p>Bu simülasyonda merceklerin sırlarını çözeceksin. Görevini tamamlamak için şu adımları izle:</p>
+            <ul>
+                <li>🔦 <strong>Lazer Işınını Kullan:</strong> Işını hareket ettirerek merceğin Asal Eksenini (↕) ve Optik Merkezini (☩) bul ve sürükleyerek yerlerine yerleştir.</li>
+                <li>📏 <strong>Dijital Cetveli Kullan:</strong> Bulduğun merkezden itibaren Odak Uzaklığını (F) milimetrik olarak ölç.</li>
+                <li>🕵️ <strong>Doğrula:</strong> Bulduğun F ve 2F değerlerini yukarıdaki kutucuklara girip <b>"Doğrula ✔️"</b> butonuna bas.</li>
+            </ul>
+            <button id="btnStartMission">🚀 Görevi Başlat</button>
+        </div>
+    </div>
 
     <div id="top-bar">
         <div class="control-group">
@@ -153,6 +192,14 @@
     const ctxDraw = drawCanvas.getContext('2d');
     const infoOverlay = document.getElementById('info-overlay');
     
+    // Popup Kapatma Mantığı
+    const introPopup = document.getElementById('intro-popup');
+    const btnStartMission = document.getElementById('btnStartMission');
+    btnStartMission.addEventListener('click', () => {
+        introPopup.style.display = 'none';
+        resize(); // Popup kapanınca canvas'ın doğru boyutlandığından emin ol
+    });
+    
     const btnModeIsin = document.getElementById('btnModeIsin');
     const btnModeGoruntu = document.getElementById('btnModeGoruntu');
     const btnInce = document.getElementById('btnInce');
@@ -195,7 +242,6 @@
     
     let laser = { x: 100, y: 300, angle: 0, isDraggingBody: false, isDraggingTip: false };
     let obj = { x: 150, h: 80, isDragging: false }; 
-    // CETVEL GÜNCELLEMESİ: markerV ve isDraggingMarker eklendi
     let ruler = { cx: -1000, cy: -1000, w: 400, h: 40, angle: 0, isDragging: false, isRotating: false, offX: 0, offY: 0, markerV: 150, isDraggingMarker: false }; 
     let guessAxis = { y: -1000, isDragging: false }; 
     let guessO = { x: 100, y: 100, isDragging: false };
@@ -330,7 +376,6 @@
         if (showRuler) {
             let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s; let localY = dx * s + dy * c;
             
-            // Dijital imleç kontrolü (Kumpas)
             let markerLocalX = -ruler.w/2 + ruler.markerV;
             if (Math.abs(localX - markerLocalX) < 25 && Math.abs(localY) < 35) { ruler.isDraggingMarker = true; return; }
 
@@ -352,7 +397,6 @@
         if (guessO.isDragging) { guessO.x = mx; guessO.y = my; draw(); simCanvas.style.cursor = 'grabbing'; return; }
         if (guessAxis.isDragging) { guessAxis.y = my; draw(); simCanvas.style.cursor = 'ns-resize'; return; }
         
-        // Dijital İmleç Sürükleme
         if (ruler.isDraggingMarker) {
             let dx = mx - ruler.cx; let dy = my - ruler.cy; let c = Math.cos(-ruler.angle); let s = Math.sin(-ruler.angle); let localX = dx * c - dy * s;
             ruler.markerV = localX + ruler.w/2;
@@ -424,36 +468,23 @@
         ctx.beginPath(); ctx.moveTo(O_x, centerY - lensHeight - 20); ctx.lineTo(O_x, centerY + lensHeight + 20); ctx.strokeStyle = 'rgba(0, 242, 254, 0.3)'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
     }
     
-    // --- YENİ DİJİTAL CETVEL ---
     function drawPortableRuler() {
         if (!showRuler) return; ctx.save(); ctx.translate(ruler.cx, ruler.cy); ctx.rotate(ruler.angle); 
         
-        // Cetvel Zemin
         ctx.fillStyle = 'rgba(0, 242, 254, 0.1)'; ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)'; ctx.lineWidth = 1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h, 6); else ctx.rect(-ruler.w/2, -ruler.h/2, ruler.w, ruler.h); ctx.fill(); ctx.stroke(); 
         
-        // Ölçülen Alan Vurgusu (0 ile imleç arası)
         ctx.fillStyle = 'rgba(57, 255, 20, 0.15)'; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-ruler.w/2, -ruler.h/2, ruler.markerV, ruler.h, {tl:6, bl:6, tr:0, br:0}); else ctx.rect(-ruler.w/2, -ruler.h/2, ruler.markerV, ruler.h); ctx.fill();
 
-        // Çizgiler (Ticks)
         ctx.fillStyle = C_ACCENT; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
         for (let i = 0; i <= ruler.w; i += 10) { let isMajor = (i % 50 === 0); let tickH = isMajor ? 12 : 6; let rx = -ruler.w/2 + i; ctx.beginPath(); ctx.moveTo(rx, -ruler.h/2); ctx.lineTo(rx, -ruler.h/2 + tickH); ctx.stroke(); if (isMajor) ctx.fillText(i, rx, -ruler.h/2 + tickH + 12); }
         
-        // Döndürme İkonu
         ctx.beginPath(); ctx.arc(ruler.w/2 + 25, 0, 12, 0, Math.PI*2); ctx.fillStyle = 'rgba(57, 255, 20, 0.5)'; ctx.fill(); ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.fillText('↻', ruler.w/2 + 25, 5); 
         
-        // --- Dijital Kumpas ve Ekran ---
         let mx_local = -ruler.w/2 + ruler.markerV;
         
-        // Kumpas Çizgisi
         ctx.beginPath(); ctx.moveTo(mx_local, -ruler.h/2 - 15); ctx.lineTo(mx_local, ruler.h/2 + 5); ctx.strokeStyle = '#ffbd00'; ctx.lineWidth = 2; ctx.stroke();
-        
-        // Kumpas Tutacağı
         ctx.beginPath(); ctx.moveTo(mx_local - 8, -ruler.h/2 - 15); ctx.lineTo(mx_local + 8, -ruler.h/2 - 15); ctx.lineTo(mx_local, -ruler.h/2 - 2); ctx.closePath(); ctx.fillStyle = '#ffbd00'; ctx.fill();
-        
-        // Dijital Ekran Kutusu
         ctx.fillStyle = '#0a0a0a'; ctx.strokeStyle = '#ffbd00'; ctx.lineWidth = 2; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(mx_local - 30, -ruler.h/2 - 45, 60, 24, 4); else ctx.rect(mx_local - 30, -ruler.h/2 - 45, 60, 24); ctx.fill(); ctx.stroke();
-        
-        // Dijital Ekran Metni
         ctx.fillStyle = '#39ff14'; ctx.font = 'bold 14px "Courier New", monospace'; ctx.fillText(Math.round(ruler.markerV) + ' br', mx_local, -ruler.h/2 - 28);
 
         ctx.restore();
