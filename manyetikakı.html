@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manyetik Akı </title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet">
+    <title>Manyetik Akı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -20,7 +20,7 @@
             
             --success-grad: linear-gradient(135deg, #10b981, #047857);
             
-            --text-main: #0f172a; /* Yazı rengi daha koyu yapıldı */
+            --text-main: #0f172a; 
             --text-muted: #475569;
             
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -42,7 +42,6 @@
             padding: 1rem;
         }
 
-        /* Yönerge Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);
@@ -77,7 +76,6 @@
         }
         .btn-start:hover { transform: translateY(-2px); }
 
-        /* Ana Arayüz */
         .app-container {
             max-width: 1300px; width: 100%; height: 95vh; max-height: 800px; 
             display: flex; gap: 2rem; background: var(--surface);
@@ -104,7 +102,6 @@
         .control-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 0.5rem;}
         .label-row { display: flex; justify-content: space-between; align-items: center; }
         
-        /* Sağ paneldeki etiketler çok daha büyük ve okunaklı */
         .label-row label { font-weight: 800; font-size: 1.2rem; }
 
         .value-badge {
@@ -115,7 +112,6 @@
         
         #valTheta { background: var(--accent-light); color: var(--accent-text); }
 
-        /* Slider boyutları artırıldı */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 24px; cursor: pointer; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #cbd5e1; border-radius: 999px; }
         input[type=range]::-webkit-slider-thumb {
@@ -133,7 +129,6 @@
         
         input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
-        /* Sonuç Kartı */
         .result-card {
             background: var(--success-grad); border-radius: 1rem; padding: 1.8rem;
             text-align: center; color: white; box-shadow: var(--shadow-md);
@@ -200,7 +195,7 @@
 
             <div class="control-group">
                 <div class="label-row">
-                    <label for="sliderTheta" style="color: #c62828;">Açı (θ) - Yüzey normali ile B Arası</label>
+                    <label for="sliderTheta" style="color: #c62828;">Açı (θ) - Yüzey Normali ile B Arası</label>
                     <span class="value-badge" id="valTheta">0°</span>
                 </div>
                 <input type="range" id="sliderTheta" min="0" max="180" step="1" value="0">
@@ -255,7 +250,7 @@
             const colorS = '#1d4ed8'; // Koyu Mavi
             const colorN = '#d50000'; // Güçlü Kırmızı
             
-            ctx.font = '900 32px Inter'; // Kutup harfleri büyütüldü
+            ctx.font = '900 32px Inter'; 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
@@ -312,33 +307,50 @@
             // Manyetik Alan Çizgileri ve Vektörlü B
             const bColor = '#334155'; 
             const numLines = Math.floor(B) * 2 + 1; 
-            const spacingY = height / (numLines + 1);
             
-            for(let i = 1; i <= numLines; i++) {
-                drawArrow(ctx, poleOffset, i * spacingY, width - poleOffset, i * spacingY, bColor, 14, false);
+            // Çizgilerin tavana yapışmasını engelleyen güvenli alan algoritması
+            const topMargin = 60; // Vektör oku için garantili tepe boşluğu
+            const bottomMargin = 40; // Alt boşluk
+            const availableHeight = height - topMargin - bottomMargin;
+            
+            // Çizgiler arasındaki dikey mesafe (Tek çizgi varsa tam ortaya çizer)
+            const spacingY = numLines > 1 ? availableHeight / (numLines - 1) : 0;
+            
+            for(let i = 0; i < numLines; i++) {
+                let lineY = numLines > 1 ? topMargin + (i * spacingY) : height / 2;
                 
-                // Vektör oku ve harf boyutu büyütüldü
-                if (i === 1) {
-                    ctx.font = 'italic 900 28px Inter'; 
+                drawArrow(ctx, poleOffset, lineY, width - poleOffset, lineY, bColor, 14, false);
+                
+                // Tam hizalanmış Vektör Okunu Çizme (Sadece En Üst Çizgiye)
+                if (i === 0) {
+                    ctx.font = 'italic 900 30px Inter'; 
                     ctx.fillStyle = bColor; 
                     ctx.textAlign = 'center';
                     
-                    let textX = width/2;
-                    let textY = i * spacingY - 22;
+                    let textX = width / 2;
+                    let textY = lineY - 18; // Çizgiden güvenli mesafe yukarı
                     ctx.fillText('B', textX, textY);
                     
-                    // Vektör Oku
+                    // Vektör Oku (B harfinin genişliğine göre dinamik hizalama)
+                    let bWidth = ctx.measureText('B').width;
+                    let arrStartX = textX - bWidth / 2;
+                    let arrEndX = textX + bWidth / 2 + 5;
+                    let arrY = textY - 26; // B harfinin tam tepesi
+                    
                     ctx.beginPath();
                     ctx.strokeStyle = bColor;
-                    ctx.lineWidth = 3;
-                    let arrWidth = 18; 
-                    let arrY = textY - 22; 
+                    ctx.lineWidth = 3.5;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
                     
-                    ctx.moveTo(textX - arrWidth/2, arrY);
-                    ctx.lineTo(textX + arrWidth/2, arrY);
-                    ctx.lineTo(textX + arrWidth/2 - 5, arrY - 4);
-                    ctx.moveTo(textX + arrWidth/2, arrY);
-                    ctx.lineTo(textX + arrWidth/2 - 5, arrY + 4);
+                    // Okun ana çizgisi
+                    ctx.moveTo(arrStartX, arrY);
+                    ctx.lineTo(arrEndX, arrY);
+                    
+                    // Okun uç kısımları
+                    ctx.lineTo(arrEndX - 6, arrY - 5);
+                    ctx.moveTo(arrEndX, arrY);
+                    ctx.lineTo(arrEndX - 6, arrY + 5);
                     ctx.stroke();
                 }
             }
@@ -364,7 +376,7 @@
             ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
             ctx.fill(); ctx.stroke();
 
-            // A Harfi Büyütüldü
+            // A Harfi
             ctx.font = '900 32px Inter'; ctx.fillStyle = '#1e3a8a';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('A', cx, cy);
 
@@ -372,7 +384,7 @@
             const normalLength = 150;
             drawArrow(ctx, cx, cy, cx + nx * normalLength, cy + ny * normalLength, normalColor, 18, true);
             
-            // Açı Yayı ve Metni Büyütüldü
+            // Açı Yayı ve Metni
             if (thetaDeg > 1) { 
                 const arcRadius = 75;
                 ctx.beginPath(); ctx.strokeStyle = normalColor; ctx.lineWidth = 3; ctx.setLineDash([]);
@@ -381,7 +393,6 @@
                 const labelRadius = arcRadius + 32; const midAngle = -thetaRad / 2; 
                 ctx.font = '900 22px Inter'; ctx.fillStyle = normalColor; ctx.textAlign = 'center';
                 
-                // Açı yazısı etrafına beyaz çerçeve (okunabilirlik için)
                 let angleText = Math.round(thetaDeg) + "°";
                 let angleX = cx + labelRadius * Math.cos(midAngle);
                 let angleY = cy + labelRadius * Math.sin(midAngle);
@@ -393,17 +404,15 @@
 
             drawRightAngleSymbol(ctx, cx, cy, {x:nx, y:ny}, {x:ux, y:uy}, 20);
             
-            // "Yüzey Normali (N)" Etiketi (Kutu Silindi, Beyaz Dış Çizgi Eklendi)
+            // "Yüzey Normali (N)" Etiketi
             ctx.font = '900 22px Inter'; 
             const textX = cx + nx * normalLength + 15; const textY = cy + ny * normalLength - 10;
             const textStr = "Yüzey Normali (N)";
             
             ctx.textAlign = 'left'; 
-            // Okunabilirlik için kalın beyaz dış çerçeve
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.lineWidth = 5;
             ctx.strokeText(textStr, textX, textY);
-            // Kırmızı iç yazı
             ctx.fillStyle = normalColor; 
             ctx.fillText(textStr, textX, textY);
 
