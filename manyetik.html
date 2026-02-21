@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elektrik ve Manyetizma - Gelişmiş Simülasyon</title>
+    <title>Akım Geçen Telin Manyetik Alanı</title>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -333,7 +333,7 @@
         <button class="btn" id="reverseBatteryBtn">Pilin Yönünü Çevir (+ / -)</button>
 
         <div class="slider-group">
-            <label><span>Akım Şiddeti (I)</span> <span id="iValText" style="color:var(--accent)">5 A</span></label>
+            <label><span>Akım Şiddeti (i)</span> <span id="iValText" style="color:var(--accent)">5 A</span></label>
             <input type="range" id="iSlider" min="0" max="10" step="1" value="5">
         </div>
 
@@ -353,8 +353,8 @@
 
         <div class="radio-group">
             <span style="color: var(--accent); font-weight: bold; font-size: 0.75rem;">GÖRÜNÜM MODU</span>
-            <label><input type="radio" name="viewMode" value="symbols"> Klasik Semboller (2D)</label>
             <label><input type="radio" name="viewMode" value="lines" checked> 3D Alan Çizgileri</label>
+            <label><input type="radio" name="viewMode" value="symbols"> Klasik Semboller (2D)</label>
             <label><input type="radio" name="viewMode" value="filings"> Demir Tozu Deneyi</label>
         </div>
         
