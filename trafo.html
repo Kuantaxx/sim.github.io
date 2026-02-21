@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformatör </title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&family=Inter:wght@400;600;700;800&display=swap');
+
+        :root {
+            --bg-core: #0d1117; 
+            --panel-bg: #161b22; 
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff; 
+            --accent-orange: #f0883e; 
+            --border-color: #30363d;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-core);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden; 
+        }
+
+        .sidebar {
+            width: 380px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+            flex-shrink: 0; 
+        }
+
+        .controls {
+            padding: 2.5rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem; 
+            overflow-y: auto; 
+            height: 100%;
+        }
+
+        .controls::-webkit-scrollbar { width: 8px; }
+        .controls::-webkit-scrollbar-track { background: var(--bg-core); }
+        .controls::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        .control-section {
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .control-section h3 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .primary-col h3 { color: var(--accent-blue); border-bottom: 2px solid var(--accent-blue); display: inline-block; padding-bottom: 4px; }
+        .secondary-col h3 { color: var(--accent-orange); border-bottom: 2px solid var(--accent-orange); display: inline-block; padding-bottom: 4px; }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .val-badge {
+            font-family: 'Roboto Mono', monospace;
+            background: #21262d;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            font-size: 1.1rem; 
+            min-width: 70px;
+            text-align: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            height: 8px;
+            background: #30363d;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            border: 4px solid var(--bg-core);
+            background: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background-color: var(--bg-core);
+            background-image: 
+                radial-gradient(circle at center, #1c2128 0%, #0d1117 100%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+        
+        canvas {
+            z-index: 10;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6));
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="controls">
+            <div class="control-section primary-col">
+                <h3>GİRİŞ (PRİMER)</h3>
+                <div class="slider-group">
+                    <div class="slider-labels"><span>Vₚ Gerilimi</span><span class="val-badge" id="vp-val">220 V</span></div>
+                    <input type="range" id="vp" min="10" max="1000" value="220" step="10">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-labels"><span>iₚ Akımı</span><span class="val-badge" id="ip-val">5.0 A</span></div>
+                    <input type="range" id="ip" min="0.5" max="25.0" value="5.0" step="0.5">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-labels"><span>Nₚ Sarım</span><span class="val-badge" id="np-val">500</span></div>
+                    <input type="range" id="np" min="50" max="1500" value="500" step="50">
+                </div>
+            </div>
+
+            <div class="control-section secondary-col">
+                <h3>ÇIKIŞ (SEKONDER)</h3>
+                <div class="slider-group">
+                    <div class="slider-labels"><span>Nₛ Sarım</span><span class="val-badge" id="ns-val">1000</span></div>
+                    <input type="range" id="ns" min="50" max="1500" value="1000" step="50">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="simCanvas" width="1400" height="900"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const elVp = document.getElementById('vp');
+        const elIp = document.getElementById('ip'); 
+        const elNp = document.getElementById('np');
+        const elNs = document.getElementById('ns');
+
+        const outVp = document.getElementById('vp-val');
+        const outIp = document.getElementById('ip-val');
+        const outNp = document.getElementById('np-val');
+        const outNs = document.getElementById('ns-val');
+
+        let sys = { vp: 220, np: 500, ns: 1000, ip: 5.0, vs: 0, is: 0 };
+        let time = 0;
+
+        function updatePhysics() {
+            sys.vp = parseFloat(elVp.value);
+            sys.ip = parseFloat(elIp.value);
+            sys.np = parseFloat(elNp.value);
+            sys.ns = parseFloat(elNs.value);
+
+            sys.vs = sys.vp * (sys.ns / sys.np);
+            sys.is = sys.ip * (sys.np / sys.ns);
+
+            outVp.textContent = `${sys.vp} V`;
+            outIp.textContent = `${sys.ip.toFixed(1)} A`;
+            outNp.textContent = sys.np;
+            outNs.textContent = sys.ns;
+        }
+
+        // HUD Çizimi - Daha büyük fontlar
+        function drawCleanHUD(x, y, title, value, unit, color) {
+            const width = 230; // Genişlik artırıldı
+            const height = 90; // Yükseklik artırıldı
+            const anchorX = x - width / 2;
+            const anchorY = y - height / 2;
+
+            ctx.save();
+            ctx.fillStyle = '#161b22';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            
+            ctx.beginPath();
+            ctx.roundRect(anchorX, anchorY, width, height, 15);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#8b949e'; 
+            ctx.font = '800 18px Inter'; // Başlık büyüdü
+            ctx.fillText(title, x, anchorY + 32);
+
+            ctx.fillStyle = '#ffffff'; 
+            ctx.font = '700 36px Roboto Mono'; // Değer büyüdü
+            
+            let displayVal = value % 1 === 0 ? value : value.toFixed(1);
+            if(value >= 10000) displayVal = (value/1000).toFixed(1) + "k";
+            
+            ctx.fillText(`${displayVal} ${unit}`, x, anchorY + 70);
+            ctx.restore();
+        }
+
+        function drawRealisticCoil(coilX, coilY, width, height, turns, isPrimary) {
+            const visualTurns = Math.max(15, Math.min(Math.floor(turns / 10), 45));
+            const wireSpacing = height / visualTurns;
+            const wireRadius = wireSpacing * 0.48;
+
+            ctx.fillStyle = '#010409';
+            ctx.fillRect(coilX - 5, coilY - 10, width + 10, height + 20);
+
+            for (let i = 0; i < visualTurns; i++) {
+                const wy = coilY + i * wireSpacing + wireSpacing / 2;
+                const wireGrad = ctx.createLinearGradient(coilX, 0, coilX + width, 0);
+                
+                if (isPrimary) {
+                    wireGrad.addColorStop(0, '#30160a'); wireGrad.addColorStop(0.3, '#b35d34'); 
+                    wireGrad.addColorStop(0.5, '#ffa07a'); wireGrad.addColorStop(0.7, '#b35d34');
+                    wireGrad.addColorStop(1, '#1a0904');
+                } else {
+                    wireGrad.addColorStop(0, '#4a1e0c'); wireGrad.addColorStop(0.3, '#f0883e');
+                    wireGrad.addColorStop(0.5, '#ffcc99'); wireGrad.addColorStop(0.7, '#f0883e');
+                    wireGrad.addColorStop(1, '#2b1005');
+                }
+
+                ctx.beginPath();
+                ctx.roundRect(coilX - 12, wy - wireRadius, width + 24, wireRadius * 2, wireRadius);
+                ctx.fillStyle = wireGrad;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function drawTransformer(x, y, np, ns) {
+            const coreW = 480; // Çekirdek genişletildi
+            const coreH = 540; // Çekirdek yükseltildi
+            const legW = 120;
+
+            const coreGrad = ctx.createLinearGradient(x, y, x + coreW, y + coreH);
+            coreGrad.addColorStop(0, '#484f58'); coreGrad.addColorStop(1, '#21262d');
+            
+            ctx.fillStyle = coreGrad; ctx.strokeStyle = '#30363d'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.roundRect(x, y, coreW, coreH, 20); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#0d1117';
+            ctx.beginPath(); ctx.roundRect(x + legW, y + legW, coreW - 2*legW, coreH - 2*legW, 12); ctx.fill();
+            
+            drawRealisticCoil(x, y + 60, legW, coreH - 120, np, true);
+            drawRealisticCoil(x + coreW - legW, y + 60, legW, coreH - 120, ns, false);
+
+            ctx.save();
+            ctx.textAlign = 'center';
+            // Sarım Etiketleri
+            ctx.font = '800 32px Inter'; // Font büyütüldü
+            ctx.fillStyle = '#58a6ff'; ctx.fillText(`Nₚ = ${sys.np}`, x + legW/2, y - 35);
+            ctx.fillStyle = '#f0883e'; ctx.fillText(`Nₛ = ${sys.ns}`, x + coreW - legW/2, y - 35);
+
+            // Alt Etiketler
+            ctx.font = '800 24px Inter'; // Font büyütüldü
+            ctx.fillStyle = 'rgba(88, 166, 255, 0.8)'; ctx.fillText('PRİMER', x + legW/2, y + coreH - 30);
+            ctx.fillStyle = 'rgba(240, 136, 62, 0.8)'; ctx.fillText('SEKONDER', x + coreW - legW/2, y + coreH - 30);
+            ctx.restore();
+
+            return {
+                pTop: {x: x, y: y + 60}, pBot: {x: x, y: y + coreH - 60},
+                sTop: {x: x + coreW, y: y + 60}, sBot: {x: x + coreW, y: y + coreH - 60}
+            };
+        }
+
+        function drawWirePath(points, color, current) {
+            ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+            for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+            ctx.stroke();
+
+            if(current > 0.05) {
+                const dashOffset = Math.sin(time * 0.06) * Math.min(current * 30, 120);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; ctx.lineWidth = 3.5;
+                ctx.setLineDash([10, 50]); ctx.lineDashOffset = dashOffset;
+                ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+                for(let i=1; i<points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+                ctx.stroke(); ctx.setLineDash([]); 
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            const trafoX = cx - 240;
+            const trafoY = cy - 270;
+            const nodes = drawTransformer(trafoX, trafoY, sys.np, sys.ns);
+
+            const wireW = 320;
+            const pColor = '#58a6ff'; const sColor = '#f0883e'; 
+
+            // PRİMER
+            const pStartX = nodes.pTop.x - wireW;
+            const pPoints = [{x: nodes.pBot.x, y: nodes.pBot.y}, {x: pStartX, y: nodes.pBot.y}, {x: pStartX, y: nodes.pTop.y}, {x: nodes.pTop.x, y: nodes.pTop.y}];
+            drawWirePath(pPoints, pColor, sys.ip);
+
+            // AC KAYNAK
+            ctx.save();
+            const acRadius = 55;
+            ctx.fillStyle = '#0d1117'; ctx.beginPath(); ctx.arc(pStartX, cy, acRadius, 0, Math.PI*2); ctx.fill(); 
+            ctx.strokeStyle = pColor; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(pStartX, cy, acRadius, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pStartX-30, cy); ctx.bezierCurveTo(pStartX-15, cy-35, pStartX+15, cy+35, pStartX+30, cy); ctx.stroke();
+            ctx.fillStyle = '#8b949e'; ctx.font = '800 20px Inter'; ctx.textAlign = 'center'; // Font büyütüldü
+            ctx.fillText('AC KAYNAK', pStartX, cy + 90); ctx.restore();
+
+            drawCleanHUD(pStartX + wireW/2, nodes.pTop.y - 85, "GİRİŞ GERİLİMİ (Vₚ)", sys.vp, "V", pColor);
+            drawCleanHUD(pStartX + wireW/2, nodes.pBot.y + 85, "GİRİŞ AKIMI (iₚ)", sys.ip, "A", pColor);
+            
+            // SEKONDER
+            const sEndX = nodes.sTop.x + wireW;
+            const zigH = 120; const zigW = 26; 
+            const sPoints = [
+                {x: nodes.sBot.x, y: nodes.sBot.y}, {x: sEndX, y: nodes.sBot.y}, {x: sEndX, y: cy + zigH/2},
+                {x: sEndX + zigW, y: cy + zigH*0.3}, {x: sEndX - zigW, y: cy + zigH*0.1},
+                {x: sEndX + zigW, y: cy - zigH*0.1}, {x: sEndX - zigW, y: cy - zigH*0.3},
+                {x: sEndX, y: cy - zigH/2}, {x: sEndX, y: nodes.sTop.y}, {x: nodes.sTop.x, y: nodes.sTop.y}
+            ];
+            drawWirePath(sPoints, sColor, sys.is);
+
+            ctx.save(); ctx.fillStyle = sColor; ctx.font = '800 22px Inter'; ctx.textAlign = 'left'; // Font büyütüldü
+            ctx.fillText('DİRENÇ', sEndX + 45, cy + 8); ctx.restore();
+
+            drawCleanHUD(sEndX - wireW/2, nodes.sTop.y - 85, "ÇIKIŞ GERİLİMİ (Vₛ)", sys.vs, "V", sColor);
+            drawCleanHUD(sEndX - wireW/2, nodes.sBot.y + 85, "ÇIKIŞ AKIMI (iₛ)", sys.is, "A", sColor);
+        }
+
+        function animate() { time += 1; updatePhysics(); render(); requestAnimationFrame(animate); }
+        elVp.addEventListener('input', updatePhysics); elIp.addEventListener('input', updatePhysics);
+        elNp.addEventListener('input', updatePhysics); elNs.addEventListener('input', updatePhysics);
+
+        updatePhysics(); animate();
+    </script>
+</body>
+</html>
