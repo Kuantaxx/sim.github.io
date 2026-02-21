@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manyetik Akı </title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --bg-pattern: radial-gradient(#e2e8f0 1px, transparent 1px);
+            --surface: #ffffff;
+            
+            --primary-grad: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            --primary-light: #dbeafe;
+            
+            --accent-grad: linear-gradient(135deg, #d50000, #b71c1c);
+            --accent-light: #ffebee;
+            --accent-text: #c62828;
+            
+            --success-grad: linear-gradient(135deg, #10b981, #047857);
+            
+            --text-main: #0f172a; /* Yazı rengi daha koyu yapıldı */
+            --text-muted: #475569;
+            
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: var(--bg-pattern);
+            background-size: 20px 20px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            padding: 1rem;
+        }
+
+        /* Yönerge Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--surface); padding: 3rem; border-radius: 1.5rem;
+            max-width: 700px; box-shadow: var(--shadow-lg);
+            animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-title {
+            font-size: 2.4rem; font-weight: 900; text-align: center;
+            background: var(--primary-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .modal-text { font-size: 1.3rem; line-height: 1.6; margin-bottom: 2rem; font-weight: 500; }
+        .modal-text li { margin-bottom: 0.8rem; }
+
+        .btn-start {
+            width: 100%; background: var(--primary-grad); color: white; border: none;
+            padding: 1.2rem; font-size: 1.4rem; font-weight: 800; border-radius: 1rem;
+            cursor: pointer; box-shadow: var(--shadow-md); transition: transform 0.2s;
+        }
+        .btn-start:hover { transform: translateY(-2px); }
+
+        /* Ana Arayüz */
+        .app-container {
+            max-width: 1300px; width: 100%; height: 95vh; max-height: 800px; 
+            display: flex; gap: 2rem; background: var(--surface);
+            padding: 2rem; border-radius: 1.5rem; box-shadow: var(--shadow-lg);
+        }
+
+        .canvas-section {
+            flex: 2.2; background: #f8fafc; border-radius: 1rem;
+            padding: 0.5rem; border: 2px solid #e2e8f0;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%; height: 100%; object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(59, 130, 246, 0.1));
+        }
+
+        .controls-section {
+            flex: 1; min-width: 350px; display: flex; flex-direction: column;
+            gap: 1.5rem; justify-content: center;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 0.5rem;}
+        .label-row { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Sağ paneldeki etiketler çok daha büyük ve okunaklı */
+        .label-row label { font-weight: 800; font-size: 1.2rem; }
+
+        .value-badge {
+            background: var(--primary-light); color: #1e40af; padding: 0.4rem 1rem;
+            border-radius: 999px; font-size: 1.15rem; font-weight: 900;
+            min-width: 80px; text-align: center;
+        }
+        
+        #valTheta { background: var(--accent-light); color: var(--accent-text); }
+
+        /* Slider boyutları artırıldı */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; height: 24px; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #cbd5e1; border-radius: 999px; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 26px; width: 26px; border-radius: 50%;
+            background: var(--surface); border: 4px solid transparent; background-clip: padding-box;
+            margin-top: -9px; box-shadow: var(--shadow-md); transition: transform 0.2s;
+        }
+        #sliderB::-webkit-slider-runnable-track { background: linear-gradient(to right, #93c5fd, #3b82f6); }
+        #sliderB::-webkit-slider-thumb { box-shadow: 0 0 0 4px #3b82f6, var(--shadow-md); }
+        #sliderA::-webkit-slider-runnable-track { background: linear-gradient(to right, #93c5fd, #3b82f6); }
+        #sliderA::-webkit-slider-thumb { box-shadow: 0 0 0 4px #3b82f6, var(--shadow-md); }
+        
+        #sliderTheta::-webkit-slider-runnable-track { background: linear-gradient(to right, #ffcdd2, #d50000); }
+        #sliderTheta::-webkit-slider-thumb { box-shadow: 0 0 0 4px #d50000, var(--shadow-md); }
+        
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        /* Sonuç Kartı */
+        .result-card {
+            background: var(--success-grad); border-radius: 1rem; padding: 1.8rem;
+            text-align: center; color: white; box-shadow: var(--shadow-md);
+            position: relative; overflow: hidden; margin-bottom: 1.5rem;
+        }
+        .result-title { font-size: 1.2rem; font-weight: 800; opacity: 0.95; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .result-value-wrapper { display: flex; justify-content: center; align-items: baseline; gap: 0.5rem; }
+        .result-value { font-size: 4.8rem; font-weight: 900; line-height: 1; }
+        .result-unit { font-size: 1.8rem; font-weight: 700; opacity: 0.9; }
+
+        @media (max-width: 900px) {
+            body { height: auto; overflow: auto; }
+            .app-container { flex-direction: column; height: auto; max-height: none; }
+            .canvas-section { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-overlay" id="startModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Manyetik Akı Keşfi</h2>
+            <div class="modal-text">
+                <p>Manyetik akı (<strong>Φ</strong>), bir yüzeyden geçen manyetik alan çizgilerinin yoğunluğunun bir ölçüsüdür.</p>
+                <p><strong>Görevleriniz:</strong></p>
+                <ul>
+                    <li>Akıyı <strong>maksimum</strong> yapmak için yüzeyi ve alanı nasıl konumlandırmalısınız?</li>
+                    <li>Akının <strong>sıfır</strong> olduğu anı yakalayın. O sırada yüzeyin duruşu nasıldır?</li>
+                </ul>
+            </div>
+            <button class="btn-start" onclick="closeModal()">Deneye Başla</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="canvas-section" id="canvasContainer">
+            <canvas id="simCanvas"></canvas>
+        </div>
+
+        <div class="controls-section">
+            <div class="result-card">
+                <div class="result-title">Manyetik Akı Büyüklüğü (Φ)</div>
+                <div class="result-value-wrapper">
+                    <span class="result-value" id="fluxResult">25.0</span>
+                    <span class="result-unit">Wb</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="sliderB">Manyetik Alan Şiddeti (B)</label>
+                    <span class="value-badge" id="valB">5 T</span>
+                </div>
+                <input type="range" id="sliderB" min="1" max="10" step="1" value="5">
+            </div>
+
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="sliderA">Yüzey Alanı (A)</label>
+                    <span class="value-badge" id="valA">5 m²</span>
+                </div>
+                <input type="range" id="sliderA" min="1" max="10" step="1" value="5">
+            </div>
+
+            <div class="control-group">
+                <div class="label-row">
+                    <label for="sliderTheta" style="color: #c62828;">Açı (θ) - Yüzey normali ile B Arası</label>
+                    <span class="value-badge" id="valTheta">0°</span>
+                </div>
+                <input type="range" id="sliderTheta" min="0" max="180" step="1" value="0">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function closeModal() {
+            const modal = document.getElementById('startModal');
+            modal.style.opacity = '0';
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+        }
+
+        const canvas = document.getElementById('simCanvas');
+        const container = document.getElementById('canvasContainer');
+        const ctx = canvas.getContext('2d');
+
+        const sliderB = document.getElementById('sliderB');
+        const sliderA = document.getElementById('sliderA');
+        const sliderTheta = document.getElementById('sliderTheta');
+        const valB = document.getElementById('valB');
+        const valA = document.getElementById('valA');
+        const valTheta = document.getElementById('valTheta');
+        const fluxResult = document.getElementById('fluxResult');
+
+        function drawArrow(context, fromx, fromy, tox, toy, color, headlen = 14, isDashed = false) {
+            const dx = tox - fromx; const dy = toy - fromy; const angle = Math.atan2(dy, dx);
+            context.beginPath(); context.strokeStyle = color; context.fillStyle = color; context.lineWidth = 3;
+            if (isDashed) context.setLineDash([10, 8]); else context.setLineDash([]);
+            context.moveTo(fromx, fromy); context.lineTo(tox, toy); context.stroke();
+
+            context.setLineDash([]); context.beginPath();
+            context.moveTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            context.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            context.closePath(); context.fill();
+        }
+
+        function drawRightAngleSymbol(ctx, cx, cy, normalVec, surfaceVec, size = 20) {
+            ctx.beginPath(); ctx.strokeStyle = '#d50000'; ctx.lineWidth = 3; ctx.setLineDash([]);
+            const nx = normalVec.x; const ny = normalVec.y; const sx = surfaceVec.x; const sy = surfaceVec.y;
+            ctx.moveTo(cx + sx * size, cy + sy * size);
+            ctx.lineTo(cx + sx * size + nx * size, cy + sy * size + ny * size);
+            ctx.lineTo(cx + nx * size, cy + ny * size); ctx.stroke();
+        }
+
+        function drawDipoleMagnets(width, height) {
+            const poleWidth = 100; 
+            const halfPole = poleWidth / 2;
+            
+            const colorS = '#1d4ed8'; // Koyu Mavi
+            const colorN = '#d50000'; // Güçlü Kırmızı
+            
+            ctx.font = '900 32px Inter'; // Kutup harfleri büyütüldü
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // SOL MIKNATIS
+            ctx.fillStyle = colorS;
+            ctx.fillRect(0, 0, halfPole, height);
+            ctx.fillStyle = colorN;
+            ctx.fillRect(halfPole, 0, halfPole, height);
+            
+            ctx.fillStyle = 'white';
+            ctx.fillText('S', halfPole / 2, height / 2);
+            ctx.fillText('N', halfPole + halfPole / 2, height / 2);
+            
+            ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(213, 0, 0, 0.5)';
+            ctx.fillRect(poleWidth - 2, 0, 2, height);
+            ctx.shadowBlur = 0;
+
+            // SAĞ MIKNATIS
+            ctx.fillStyle = colorS;
+            ctx.fillRect(width - poleWidth, 0, halfPole, height);
+            ctx.fillStyle = colorN;
+            ctx.fillRect(width - halfPole, 0, halfPole, height);
+            
+            ctx.fillStyle = 'white';
+            ctx.fillText('S', width - poleWidth + halfPole / 2, height / 2);
+            ctx.fillText('N', width - halfPole / 2, height / 2);
+
+            ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(29, 78, 216, 0.5)';
+            ctx.fillRect(width - poleWidth, 0, 2, height);
+            ctx.shadowBlur = 0;
+            
+            return poleWidth; 
+        }
+
+        function resizeAndDraw() {
+            const rect = container.getBoundingClientRect();
+            let width = rect.width; let height = rect.height;
+            if (width === 0) { width = 800; height = 500; }
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = width * dpr; canvas.height = height * dpr;
+            ctx.scale(dpr, dpr); ctx.clearRect(0, 0, width, height);
+
+            const B = parseFloat(sliderB.value);
+            const A = parseFloat(sliderA.value);
+            const thetaDeg = parseFloat(sliderTheta.value);
+            const thetaRad = thetaDeg * Math.PI / 180;
+
+            valB.innerText = B + ' T'; valA.innerText = A + ' m²'; valTheta.innerText = thetaDeg + '°';
+
+            // Mıknatıslar
+            const poleOffset = drawDipoleMagnets(width, height);
+
+            // Manyetik Alan Çizgileri ve Vektörlü B
+            const bColor = '#334155'; 
+            const numLines = Math.floor(B) * 2 + 1; 
+            const spacingY = height / (numLines + 1);
+            
+            for(let i = 1; i <= numLines; i++) {
+                drawArrow(ctx, poleOffset, i * spacingY, width - poleOffset, i * spacingY, bColor, 14, false);
+                
+                // Vektör oku ve harf boyutu büyütüldü
+                if (i === 1) {
+                    ctx.font = 'italic 900 28px Inter'; 
+                    ctx.fillStyle = bColor; 
+                    ctx.textAlign = 'center';
+                    
+                    let textX = width/2;
+                    let textY = i * spacingY - 22;
+                    ctx.fillText('B', textX, textY);
+                    
+                    // Vektör Oku
+                    ctx.beginPath();
+                    ctx.strokeStyle = bColor;
+                    ctx.lineWidth = 3;
+                    let arrWidth = 18; 
+                    let arrY = textY - 22; 
+                    
+                    ctx.moveTo(textX - arrWidth/2, arrY);
+                    ctx.lineTo(textX + arrWidth/2, arrY);
+                    ctx.lineTo(textX + arrWidth/2 - 5, arrY - 4);
+                    ctx.moveTo(textX + arrWidth/2, arrY);
+                    ctx.lineTo(textX + arrWidth/2 - 5, arrY + 4);
+                    ctx.stroke();
+                }
+            }
+
+            const cx = width / 2; const cy = height / 2 + 20;
+            const S = 40 + A * 9; 
+            const nx = Math.cos(thetaRad); const ny = -Math.sin(thetaRad); 
+            const ux = -Math.sin(thetaRad); const uy = -Math.cos(thetaRad);
+            const vx = 0.5; const vy = 0.25;
+
+            const p1 = { x: cx + S*ux + S*vx, y: cy + S*uy + S*vy };
+            const p2 = { x: cx + S*ux - S*vx, y: cy + S*uy - S*vy };
+            const p3 = { x: cx - S*ux - S*vx, y: cy - S*uy - S*vy };
+            const p4 = { x: cx - S*ux + S*vx, y: cy - S*uy + S*vy };
+
+            // Yüzey
+            const surfaceGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, S*1.2);
+            surfaceGrad.addColorStop(0, 'rgba(59, 130, 246, 0.75)');
+            surfaceGrad.addColorStop(1, 'rgba(29, 78, 216, 0.35)');
+            ctx.fillStyle = surfaceGrad; ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 3;
+            
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            // A Harfi Büyütüldü
+            ctx.font = '900 32px Inter'; ctx.fillStyle = '#1e3a8a';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('A', cx, cy);
+
+            const normalColor = '#d50000'; 
+            const normalLength = 150;
+            drawArrow(ctx, cx, cy, cx + nx * normalLength, cy + ny * normalLength, normalColor, 18, true);
+            
+            // Açı Yayı ve Metni Büyütüldü
+            if (thetaDeg > 1) { 
+                const arcRadius = 75;
+                ctx.beginPath(); ctx.strokeStyle = normalColor; ctx.lineWidth = 3; ctx.setLineDash([]);
+                ctx.arc(cx, cy, arcRadius, 0, Math.atan2(ny, nx), true); ctx.stroke();
+                
+                const labelRadius = arcRadius + 32; const midAngle = -thetaRad / 2; 
+                ctx.font = '900 22px Inter'; ctx.fillStyle = normalColor; ctx.textAlign = 'center';
+                
+                // Açı yazısı etrafına beyaz çerçeve (okunabilirlik için)
+                let angleText = Math.round(thetaDeg) + "°";
+                let angleX = cx + labelRadius * Math.cos(midAngle);
+                let angleY = cy + labelRadius * Math.sin(midAngle);
+                
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'; ctx.lineWidth = 4;
+                ctx.strokeText(angleText, angleX, angleY);
+                ctx.fillText(angleText, angleX, angleY);
+            }
+
+            drawRightAngleSymbol(ctx, cx, cy, {x:nx, y:ny}, {x:ux, y:uy}, 20);
+            
+            // "Yüzey Normali (N)" Etiketi (Kutu Silindi, Beyaz Dış Çizgi Eklendi)
+            ctx.font = '900 22px Inter'; 
+            const textX = cx + nx * normalLength + 15; const textY = cy + ny * normalLength - 10;
+            const textStr = "Yüzey Normali (N)";
+            
+            ctx.textAlign = 'left'; 
+            // Okunabilirlik için kalın beyaz dış çerçeve
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 5;
+            ctx.strokeText(textStr, textX, textY);
+            // Kırmızı iç yazı
+            ctx.fillStyle = normalColor; 
+            ctx.fillText(textStr, textX, textY);
+
+            // Akı Hesabı
+            let flux = Math.abs(B * A * Math.cos(thetaRad));
+            if (flux < 0.001) flux = 0; 
+            fluxResult.innerText = flux.toFixed(1);
+        }
+
+        sliderB.addEventListener('input', resizeAndDraw);
+        sliderA.addEventListener('input', resizeAndDraw);
+        sliderTheta.addEventListener('input', resizeAndDraw);
+        window.addEventListener('resize', resizeAndDraw);
+
+        if (document.fonts) { document.fonts.ready.then(resizeAndDraw); }
+        resizeAndDraw();
+    </script>
+</body>
+</html>
