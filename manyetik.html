@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elektrik ve Manyetizma - Gelişmiş Simülasyon</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent: #0ea5e9;
+            --accent-hover: #38bdf8;
+            --text-main: #f8fafc;
+            --positive: #ef4444;
+            --negative: #3b82f6;
+            --b-field: #10b981;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: radial-gradient(circle at center, #1e293b, #020617);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            touch-action: none; 
+        }
+
+        #sim-container {
+            flex-grow: 1;
+            position: relative;
+            height: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #sidebar {
+            width: 320px;
+            min-width: 320px;
+            background: var(--glass-bg);
+            border-left: 1px solid var(--glass-border);
+            padding: 15px; 
+            display: flex;
+            flex-direction: column;
+            gap: 8px; 
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-track { background: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        h2 {
+            margin: 0;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 8px;
+            text-align: center;
+        }
+
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #475569;
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--positive); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        #gridSwitch:checked + .slider { background-color: var(--accent); }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            background: #334155;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .tool-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        .tool-btn {
+            flex: 1;
+            padding: 6px;
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8rem;
+            transition: 0.3s;
+        }
+        .tool-btn.active {
+            background: rgba(14, 165, 233, 0.2);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn {
+            background: var(--glass-border);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .btn:hover { background: rgba(255,255,255,0.2); }
+
+        #info-box {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        /* Modal (Popup) Genel Stilleri */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        /* Hoşgeldin popup'ı girişte görünsün */
+        #welcomeModal {
+            display: flex; 
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--accent);
+            padding: 25px 35px;
+            border-radius: 12px;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: var(--accent);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+        }
+        .modal-content p {
+            color: var(--text-main);
+            line-height: 1.5;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+        .modal-content ul {
+            text-align: left;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            padding-left: 20px;
+        }
+        .modal-content li {
+            margin-bottom: 8px;
+        }
+        .modal-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            background: white; 
+            padding: 8px;
+        }
+        .close-btn {
+            background: var(--negative);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .close-btn:hover {
+            background: #2563eb;
+        }
+        .start-btn {
+            background: var(--accent);
+        }
+        .start-btn:hover {
+            background: var(--accent-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcomeModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>🧲 Manyetik Alan Simülasyonu</h3>
+            <p>Düz bir telden geçen elektrik akımının oluşturduğu manyetik alanı keşfetmeye hazır mısınız?</p>
+            <ul>
+                <li><b>Devreyi Tamamlayın:</b> Sağ panelden anahtarı kapatarak telden akım geçmesini sağlayın.</li>
+                <li><b>Değişkenleri Keşfedin:</b> Akım şiddetini artırın veya yönünü değiştirerek etkilerini görün.</li>
+                <li><b>Ölçüm Yapın:</b> Ekrandaki bilgi panelini (Gaussmetre/Pusula) farenizle sürükleyerek farklı uzaklıklardaki alanı test edin.</li>
+                <li><b>Görünümü Değiştirin:</b> 3D çizgiler, 2D semboller veya demir tozları ile alanı farklı açılardan inceleyin.</li>
+            </ul>
+            <button class="close-btn start-btn" id="startSimBtn">Simülasyona Başla</button>
+        </div>
+    </div>
+
+    <div id="rhrModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Sağ El Kuralı</h3>
+            <p>Düz bir telden geçen akımın oluşturduğu manyetik alanın yönü sağ el kuralı ile bulunur. Baş parmağınız <b>akım (I)</b> yönünü gösterecek şekilde teli avucunuzun içine aldığınızda, bükülen dört parmağınızın dolanım yönü <b>manyetik alanın (B)</b> yönünü gösterir.</p>
+            <img src="https://w1.pngwing.com/pngs/440/939/png-transparent-cross-righthand-rule-flemings-lefthand-rule-for-motors-magnetic-field-electric-current-right-hand-grip-rule-magnetism-cross-product-thumbnail.png" alt="Sağ El Kuralı Görseli">
+            <br>
+            <button class="close-btn" id="closeModalBtn">Anladım, Kapat</button>
+        </div>
+    </div>
+
+    <div id="sim-container">
+        <canvas id="simCanvas"></canvas>
+        <div id="info-box">
+            <div id="statusText">Anahtar açık, devreden akım geçmiyor.</div>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <h2>Kontrol Paneli</h2>
+        
+        <div class="switch-container">
+            <span style="font-weight: 600; font-size: 0.9rem;">Devre Anahtarı</span>
+            <label class="switch">
+                <input type="checkbox" id="circuitSwitch">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button class="btn" id="reverseBatteryBtn">Pilin Yönünü Çevir (+ / -)</button>
+
+        <div class="slider-group">
+            <label><span>Akım Şiddeti (I)</span> <span id="iValText" style="color:var(--accent)">5 A</span></label>
+            <input type="range" id="iSlider" min="0" max="10" step="1" value="5">
+        </div>
+
+        <div class="slider-group" style="opacity: 0.8;">
+            <label><span>Uzaklık (d)</span> <span id="dValText" style="color:var(--accent)">3.0 m</span></label>
+            <input type="range" id="dSlider" min="1" max="12" step="0.5" value="3">
+            <div style="font-size: 0.65rem; color: #94a3b8; text-align: center; margin-top:2px;">Veya ekranı tutup sürükleyin</div>
+        </div>
+
+        <div class="radio-group">
+            <span style="color: var(--accent); font-weight: bold; margin-bottom: 2px; font-size: 0.75rem;">ÖLÇÜM ARACI</span>
+            <div class="tool-selector">
+                <button class="tool-btn active" id="btnGauss">Gaussmetre</button>
+                <button class="tool-btn" id="btnCompass">Pusula</button>
+            </div>
+        </div>
+
+        <div class="radio-group">
+            <span style="color: var(--accent); font-weight: bold; font-size: 0.75rem;">GÖRÜNÜM MODU</span>
+            <label><input type="radio" name="viewMode" value="symbols"> Klasik Semboller (2D)</label>
+            <label><input type="radio" name="viewMode" value="lines" checked> 3D Alan Çizgileri</label>
+            <label><input type="radio" name="viewMode" value="filings"> Demir Tozu Deneyi</label>
+        </div>
+        
+        <div class="switch-container" style="background: transparent; border-color: rgba(255,255,255,0.05); padding: 4px 12px;">
+            <span style="font-size: 0.85rem; color: #94a3b8;">Izgarayı (Grid) Göster</span>
+            <label class="switch">
+                <input type="checkbox" id="gridSwitch">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button class="btn" id="openModalBtn" style="background: #10b981; color: #fff; padding: 10px; font-size: 0.95rem;">🖐 Sağ El Kuralı Nedir?</button>
+
+        <button class="btn" id="shakeBtn" style="display: none; background: #eab308; color: #000;">Masaya Vur (Tozları Dağıt)</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const circuitSwitch = document.getElementById('circuitSwitch');
+        const reverseBatteryBtn = document.getElementById('reverseBatteryBtn');
+        const iSlider = document.getElementById('iSlider');
+        const dSlider = document.getElementById('dSlider');
+        const viewRadios = document.getElementsByName('viewMode');
+        const gridSwitch = document.getElementById('gridSwitch');
+        
+        const btnGauss = document.getElementById('btnGauss');
+        const btnCompass = document.getElementById('btnCompass');
+
+        const iValText = document.getElementById('iValText');
+        const dValText = document.getElementById('dValText');
+        const statusText = document.getElementById('statusText');
+        const shakeBtn = document.getElementById('shakeBtn');
+
+        // Modal Elements
+        const welcomeModal = document.getElementById('welcomeModal');
+        const startSimBtn = document.getElementById('startSimBtn');
+        const rhrModal = document.getElementById('rhrModal');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Modal Events
+        startSimBtn.addEventListener('click', () => { welcomeModal.style.display = 'none'; });
+        openModalBtn.addEventListener('click', () => { rhrModal.style.display = 'flex'; });
+        closeModalBtn.addEventListener('click', () => { rhrModal.style.display = 'none'; });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === rhrModal) rhrModal.style.display = 'none';
+            if (e.target === welcomeModal) welcomeModal.style.display = 'none';
+        });
+
+        let isClosed = false;
+        let currentDirection = 1; 
+        let viewMode = 'lines'; 
+        let activeTool = 'gauss'; 
+        let showGrid = false;
+        let time = 0;
+        
+        let currentMag = 5;
+        let distance = 3;
+
+        let cx, cy; 
+        let leftX; 
+        const wireHeight = 550;
+        let circuitWidth;
+
+        let probe = { x: 0, y: 0, dragging: false, compassAngle: Math.PI/4 };
+
+        let filings = [];
+        const numFilings = 1500;
+        const planeRx = 400; 
+        const planeRy = 140; 
+
+        function initFilings() {
+            filings = [];
+            for (let i = 0; i < numFilings; i++) {
+                let r = Math.sqrt(Math.random());
+                let theta = Math.random() * 2 * Math.PI;
+                let radiusOffset = 15 + Math.random() * (planeRx - 15);
+                let px = radiusOffset * Math.cos(theta);
+                let py = (radiusOffset * planeRy / planeRx) * Math.sin(theta);
+                filings.push({
+                    x: px, y: py,
+                    angle: Math.random() * Math.PI * 2, 
+                    length: 4 + Math.random() * 8, opacity: 0.3 + Math.random() * 0.7
+                });
+            }
+        }
+
+        function resize() {
+            canvas.width = document.getElementById('sim-container').clientWidth;
+            canvas.height = document.getElementById('sim-container').clientHeight;
+            
+            cx = (canvas.width / 2) + 100; 
+            cy = canvas.height / 2;
+            leftX = 60; 
+            circuitWidth = cx - leftX; 
+            
+            probe.x = cx + distance * 40;
+            probe.y = cy;
+            initFilings();
+        }
+        window.addEventListener('resize', resize);
+
+        function updateMath() {
+            iValText.innerText = currentMag + " A";
+            dValText.innerText = distance.toFixed(1) + " m";
+        }
+
+        function isHoveringTool(x, y) {
+            if (Math.hypot(x - probe.x, y - probe.y) < 40) return true;
+            let boxW = 150; let boxH = 65;
+            let boxX = probe.x > cx ? probe.x + 35 : probe.x - boxW - 35;
+            let boxY = probe.y - boxH/2;
+            if (x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + boxH) return true;
+            return false;
+        }
+
+        function handleDragStart(x, y) {
+            if (isHoveringTool(x, y)) {
+                probe.dragging = true;
+                canvas.style.cursor = 'grabbing';
+            }
+        }
+        
+        function handleDragMove(x, y) {
+            if (isHoveringTool(x, y) && !probe.dragging) {
+                canvas.style.cursor = 'grab';
+            } else if (!probe.dragging) {
+                canvas.style.cursor = 'default';
+            }
+
+            if (probe.dragging) {
+                let dx = x - cx;
+                let dy = y - cy;
+                
+                let r = Math.hypot(dx, dy * (planeRx / planeRy));
+                let dist = r / 40;
+                
+                if (dist < 1) dist = 1;
+                if (dist > 12) dist = 12;
+                
+                distance = dist;
+                dSlider.value = distance; 
+                
+                probe.x = x;
+                probe.y = y; 
+                
+                updateMath();
+            }
+        }
+        function handleDragEnd() {
+            probe.dragging = false;
+            canvas.style.cursor = 'default';
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            handleDragStart(e.clientX - rect.left, e.clientY - rect.top);
+        });
+        window.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            handleDragMove(e.clientX - rect.left, e.clientY - rect.top);
+        });
+        window.addEventListener('mouseup', handleDragEnd);
+
+        canvas.addEventListener('touchstart', e => {
+            const rect = canvas.getBoundingClientRect();
+            handleDragStart(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+            if(probe.dragging) e.preventDefault();
+        }, {passive: false});
+        window.addEventListener('touchmove', e => {
+            if(probe.dragging) {
+                const rect = canvas.getBoundingClientRect();
+                handleDragMove(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+                e.preventDefault();
+            }
+        }, {passive: false});
+        window.addEventListener('touchend', handleDragEnd);
+
+        circuitSwitch.addEventListener('change', (e) => {
+            isClosed = e.target.checked;
+            updateStatus();
+            if(viewMode === 'filings') scatterFilings(0.8);
+        });
+        reverseBatteryBtn.addEventListener('click', () => {
+            currentDirection *= -1;
+            updateStatus();
+            if(viewMode === 'filings') scatterFilings(0.5); 
+        });
+        iSlider.addEventListener('input', (e) => {
+            currentMag = parseFloat(e.target.value);
+            updateMath();
+        });
+        dSlider.addEventListener('input', (e) => {
+            distance = parseFloat(e.target.value);
+            let side = probe.x >= cx ? 1 : -1;
+            probe.x = cx + distance * 40 * side; 
+            probe.y = cy; 
+            updateMath();
+        });
+        gridSwitch.addEventListener('change', (e) => {
+            showGrid = e.target.checked;
+        });
+        viewRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                viewMode = e.target.value;
+                shakeBtn.style.display = viewMode === 'filings' ? 'block' : 'none';
+            });
+        });
+        btnGauss.addEventListener('click', () => {
+            activeTool = 'gauss';
+            btnGauss.classList.add('active'); btnCompass.classList.remove('active');
+        });
+        btnCompass.addEventListener('click', () => {
+            activeTool = 'compass';
+            btnCompass.classList.add('active'); btnGauss.classList.remove('active');
+        });
+        shakeBtn.addEventListener('click', () => scatterFilings(1.0));
+
+        function scatterFilings(amount) {
+            filings.forEach(f => {
+                if(Math.random() < amount) f.angle += (Math.random() - 0.5) * Math.PI;
+            });
+        }
+
+        function updateStatus() {
+            if (!isClosed) {
+                statusText.innerHTML = "Anahtar açık, devreden akım geçmiyor.";
+            } else {
+                let dirText = currentDirection === 1 ? "Aşağıdan Yukarıya (↑)" : "Yukarıdan Aşağıya (↓)";
+                statusText.innerHTML = `Akım Yönü: <b>${dirText}</b><br>Ölçüm cihazını (paneli) sürükleyerek alanı analiz edin.`;
+            }
+        }
+
+        function getFieldVectorAt(px, py) {
+            let unprojX = px - cx;
+            let unprojY = (py - cy) * (planeRx / planeRy); 
+            
+            let posAngle = Math.atan2(unprojY, unprojX);
+            let baseTangent = posAngle - Math.PI/2;
+            
+            if (currentDirection === -1) baseTangent += Math.PI; 
+            
+            let vx = Math.cos(baseTangent);
+            let vy = Math.sin(baseTangent);
+            
+            let angle = Math.atan2(vy * (planeRy/planeRx), vx);
+            return angle;
+        }
+
+        function drawGrid() {
+            if (!showGrid) return;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)"; ctx.lineWidth = 1;
+            const step = 40; 
+            ctx.beginPath();
+            for(let x = cx % step; x < canvas.width; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
+            for(let y = cy % step; y < canvas.height; y += step) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.25)"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); 
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); 
+            ctx.stroke();
+        }
+
+        function drawCross(x, y, r, opacity) {
+            ctx.globalAlpha = opacity; ctx.strokeStyle = '#10b981'; ctx.lineWidth = Math.max(2, r/6);
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+            const offset = r * 0.6; ctx.beginPath();
+            ctx.moveTo(x - offset, y - offset); ctx.lineTo(x + offset, y + offset);
+            ctx.moveTo(x + offset, y - offset); ctx.lineTo(x - offset, y + offset);
+            ctx.stroke(); ctx.globalAlpha = 1;
+        }
+
+        function drawDot(x, y, r, opacity) {
+            ctx.globalAlpha = opacity; ctx.strokeStyle = '#10b981'; ctx.fillStyle = '#10b981'; ctx.lineWidth = Math.max(2, r/6);
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        function drawCircuit() {
+            const topY = cy - wireHeight/2;
+            const bottomY = cy + wireHeight/2;
+            const batGap = 40;
+
+            ctx.strokeStyle = "#475569"; ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(cx, topY); ctx.lineTo(leftX, topY); 
+            ctx.lineTo(leftX, cy - batGap); 
+            ctx.moveTo(leftX, cy + batGap); 
+            ctx.lineTo(leftX, bottomY); 
+            ctx.lineTo(cx, bottomY); 
+            ctx.stroke();
+
+            const batW = 34; const batH = 64; const bump = 6;
+            ctx.save(); ctx.translate(leftX, cy);
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+            ctx.fillStyle = "#1e293b";
+            ctx.beginPath(); ctx.roundRect(-batW/2, -batH/2, batW, batH, 6); ctx.fill();
+            ctx.shadowColor = 'transparent';
+
+            if (currentDirection === 1) { 
+                ctx.fillStyle = "#3b82f6"; ctx.beginPath(); ctx.roundRect(-batW/2, -batH/2, batW, batH/2, [6, 6, 0, 0]); ctx.fill();
+                ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.roundRect(-batW/2, 0, batW, batH/2, [0, 0, 6, 6]); ctx.fill();
+                ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.roundRect(-batW/4, batH/2, batW/2, bump, [0, 0, 3, 3]); ctx.fill();
+                ctx.fillStyle = "#fff"; ctx.font = "bold 18px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillText("-", 0, -batH/4); ctx.fillText("+", 0, batH/4);
+            } else {
+                ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.roundRect(-batW/2, -batH/2, batW, batH/2, [6, 6, 0, 0]); ctx.fill();
+                ctx.fillStyle = "#3b82f6"; ctx.beginPath(); ctx.roundRect(-batW/2, 0, batW, batH/2, [0, 0, 6, 6]); ctx.fill();
+                ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.roundRect(-batW/4, -batH/2 - bump, batW/2, bump, [3, 3, 0, 0]); ctx.fill();
+                ctx.fillStyle = "#fff"; ctx.font = "bold 18px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillText("+", 0, -batH/4); ctx.fillText("-", 0, batH/4);
+            }
+            
+            ctx.fillStyle = "rgba(255,255,255,0.15)";
+            ctx.beginPath(); ctx.roundRect(-batW/2, -batH/2, batW/3, batH, [6, 0, 0, 6]); ctx.fill();
+            ctx.restore();
+
+            const switchX = leftX + (circuitWidth)/2;
+            ctx.fillStyle = "#0f172a"; ctx.fillRect(switchX - 30, topY - 10, 60, 20);
+            ctx.fillStyle = "#e2e8f0";
+            ctx.beginPath(); ctx.arc(switchX - 20, topY, 4, 0, Math.PI*2); ctx.arc(switchX + 20, topY, 4, 0, Math.PI*2); ctx.fill();
+            
+            ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(switchX - 20, topY);
+            if (isClosed) ctx.lineTo(switchX + 20, topY); 
+            else ctx.lineTo(switchX + 15, topY - 25); 
+            ctx.stroke();
+
+            if (isClosed && currentMag > 0) drawArrowCurrentAnimation(topY, bottomY, leftX, batGap);
+        }
+
+        function drawArrowCurrentAnimation(topY, bottomY, leftX, batGap) {
+            let pts = currentDirection === 1 
+                ? [{x: leftX, y: cy + batGap}, {x: leftX, y: bottomY}, {x: cx, y: bottomY}, {x: cx, y: topY}, {x: leftX, y: topY}, {x: leftX, y: cy - batGap}]
+                : [{x: leftX, y: cy - batGap}, {x: leftX, y: topY}, {x: cx, y: topY}, {x: cx, y: bottomY}, {x: leftX, y: bottomY}, {x: leftX, y: cy + batGap}];
+
+            let segments = []; let totalPathLen = 0;
+            for(let i=0; i<pts.length-1; i++) {
+                let dx = pts[i+1].x - pts[i].x; let dy = pts[i+1].y - pts[i].y; let len = Math.sqrt(dx*dx + dy*dy);
+                segments.push({start: pts[i], end: pts[i+1], len: len, accum: totalPathLen});
+                totalPathLen += len;
+            }
+
+            const particleSpacing = 60; 
+            const speed = 1.5 + (currentMag * 0.4); 
+            let numParticles = Math.floor(totalPathLen / particleSpacing);
+
+            ctx.shadowColor = "#facc15"; ctx.shadowBlur = 8;
+            ctx.fillStyle = "#facc15";
+
+            for (let i = 0; i < numParticles; i++) {
+                let dist = (time * speed + i * particleSpacing) % totalPathLen;
+                let seg = segments.find(s => dist >= s.accum && dist < s.accum + s.len);
+                if(seg) {
+                    let ratio = (dist - seg.accum) / seg.len;
+                    let px = seg.start.x + (seg.end.x - seg.start.x) * ratio;
+                    let py = seg.start.y + (seg.end.y - seg.start.y) * ratio;
+                    
+                    let angle = Math.atan2(seg.end.y - seg.start.y, seg.end.x - seg.start.x);
+                    
+                    ctx.save(); ctx.translate(px, py); ctx.rotate(angle);
+                    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-6, 6); ctx.lineTo(-6, -6); ctx.fill();
+                    ctx.restore();
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // AKIM OKU BOYUTLARI KÜÇÜLTÜLDÜ
+        function drawMainWire() {
+            const topY = cy - wireHeight/2;
+            const bottomY = cy + wireHeight/2;
+
+            const gradient = ctx.createLinearGradient(cx - 15, 0, cx + 15, 0);
+            gradient.addColorStop(0, "#94a3b8"); gradient.addColorStop(0.5, "#ffffff"); gradient.addColorStop(1, "#64748b");
+            ctx.fillStyle = gradient; ctx.fillRect(cx - 15, topY, 30, wireHeight);
+            
+            if (isClosed && currentMag > 0) {
+                let arrowY = cy + (Math.sin(time * 0.1) * 20); 
+                
+                ctx.fillStyle = "#ef4444";
+                ctx.shadowColor = "rgba(239, 68, 68, 0.9)";
+                ctx.shadowBlur = 15; // Parlama hafif azaltıldı
+                
+                ctx.beginPath();
+                if (currentDirection === 1) { 
+                    ctx.moveTo(cx, arrowY - 35); // Daha küçük
+                    ctx.lineTo(cx - 16, arrowY + 12); 
+                    ctx.lineTo(cx + 16, arrowY + 12); 
+                } else { 
+                    ctx.moveTo(cx, arrowY + 35); 
+                    ctx.lineTo(cx - 16, arrowY - 12); 
+                    ctx.lineTo(cx + 16, arrowY - 12); 
+                }
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = "#fff"; 
+                ctx.font = "bold 18px Arial"; // Yazı boyutu küçültüldü
+                ctx.textAlign="left"; 
+                ctx.fillText("I", cx + 25, arrowY + 5); // Daha yakına alındı
+            }
+        }
+
+        function drawModernProbe(isRight) {
+            ctx.save();
+            ctx.translate(probe.x, probe.y);
+            
+            ctx.fillStyle = isClosed && currentMag > 0 ? "#10b981" : "#64748b";
+            ctx.beginPath(); ctx.roundRect(-3, -3, 6, 6, 2); ctx.fill();
+            
+            if (isClosed && currentMag > 0) {
+                ctx.shadowColor = "#10b981"; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            }
+
+            ctx.fillStyle = "#94a3b8"; ctx.fillRect(-2, 3, 4, 25);
+            ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.roundRect(-8, 28, 16, 50, 4); ctx.fill();
+            ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = probe.dragging ? "#facc15" : "#38bdf8"; ctx.beginPath(); ctx.roundRect(-4, 35, 8, 12, 2); ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawCompass() {
+            let targetAngle;
+            if (isClosed && currentMag > 0) targetAngle = getFieldVectorAt(probe.x, probe.y);
+            else targetAngle = -Math.PI / 4; 
+
+            let diff = targetAngle - probe.compassAngle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            probe.compassAngle += diff * 0.15; 
+
+            ctx.save(); ctx.translate(probe.x, probe.y);
+
+            ctx.beginPath(); ctx.arc(0, 0, 24, 0, Math.PI * 2);
+            ctx.fillStyle = "#e2e8f0"; ctx.fill();
+            ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 3; ctx.stroke();
+            
+            ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fillStyle = "#0f172a"; ctx.fill();
+            
+            ctx.rotate(probe.compassAngle);
+            ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(16, 0); ctx.lineTo(0, 3); ctx.fillStyle = "#ef4444"; ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(-16, 0); ctx.lineTo(0, 3); ctx.fillStyle = "#3b82f6"; ctx.fill();
+            
+            ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fillStyle = "#eab308"; ctx.fill();
+            
+            ctx.rotate(-probe.compassAngle);
+            ctx.beginPath(); ctx.arc(-6, -6, 8, 0, Math.PI * 2); ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawHolographicPanel(isRight) {
+            let bValue = (2 * currentMag / distance);
+            let boxW = 150; let boxH = 65;
+            let boxX = probe.x > cx ? probe.x + 35 : probe.x - boxW - 35;
+            let boxY = probe.y - boxH/2;
+            
+            ctx.beginPath(); ctx.moveTo(probe.x + (probe.x > cx ? 10 : -10), probe.y);
+            ctx.lineTo(probe.x > cx ? boxX : boxX + boxW, boxY + boxH/2);
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.6)"; ctx.lineWidth = 1.5; ctx.stroke();
+
+            ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+            ctx.strokeStyle = probe.dragging ? "#facc15" : "#38bdf8"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 8); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
+            ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, 22, [8, 8, 0, 0]); ctx.fill();
+            ctx.fillStyle = "#38bdf8"; ctx.font = "bold 11px 'Segoe UI'"; ctx.textAlign = "center";
+            ctx.fillText(activeTool === 'gauss' ? "DİJİTAL GAUSSMETRE" : "MANYETİK PUSULA", boxX + boxW/2 - 5, boxY + 15);
+
+            ctx.textAlign = "left"; ctx.fillStyle = probe.dragging ? "#facc15" : "#f8fafc"; ctx.font = "12px 'Segoe UI'";
+            ctx.fillText(`Mesafe (d) : ${distance.toFixed(1)} m`, boxX + 10, boxY + 40);
+            
+            ctx.fillStyle = "#10b981"; ctx.font = "bold 14px 'Segoe UI'";
+            let bText = (!isClosed || currentMag === 0) ? "0.00" : bValue.toFixed(2);
+            ctx.fillText(`Alan (B)   : ${bText} T`, boxX + 10, boxY + 58); 
+
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            for(let i=0; i<4; i++) {
+                ctx.beginPath(); ctx.arc(boxX + boxW - 14, boxY + 30 + i*6, 1.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(boxX + boxW - 8, boxY + 30 + i*6, 1.5, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        function drawTool() {
+            let isRight = probe.x >= cx;
+            
+            ctx.beginPath(); ctx.setLineDash([4, 4]);
+            ctx.moveTo(cx, probe.y); ctx.lineTo(probe.x, probe.y);
+            ctx.moveTo(probe.x, cy); ctx.lineTo(probe.x, probe.y);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+
+            if (activeTool === 'gauss' && isClosed && currentMag > 0) {
+                let bValue = (2 * currentMag / distance);
+                if (viewMode === 'symbols') {
+                    let vRad = Math.max(10, Math.min(45, bValue * 5)); 
+                    if (currentDirection === 1) {
+                        isRight ? drawCross(probe.x, probe.y, vRad, 0.8) : drawDot(probe.x, probe.y, vRad, 0.8);
+                    } else {
+                        isRight ? drawDot(probe.x, probe.y, vRad, 0.8) : drawCross(probe.x, probe.y, vRad, 0.8);
+                    }
+                } else {
+                    let rx = Math.hypot(probe.x - cx, (probe.y - cy) * (planeRx / planeRy));
+                    let ry = rx * (planeRy / planeRx); 
+                    
+                    ctx.save(); ctx.translate(cx, cy); 
+                    ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+                    ctx.strokeStyle = "rgba(16, 185, 129, 0.3)"; ctx.lineWidth = 2; ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]);
+                    
+                    let angle = getFieldVectorAt(probe.x, probe.y);
+                    let vectorLength = 20 + (bValue * 7); 
+                    let headLen = 14 + (bValue * 0.8);
+                    let vWidth = 3 + (bValue * 0.4);
+                    
+                    ctx.translate(probe.x - cx, probe.y - cy); 
+                    ctx.rotate(angle);
+                    ctx.strokeStyle = "#10b981"; ctx.fillStyle = "#10b981"; ctx.lineWidth = vWidth;
+                    ctx.shadowColor = "#10b981"; ctx.shadowBlur = 15;
+                    
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(vectorLength, 0); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(vectorLength + headLen, 0); ctx.lineTo(vectorLength, headLen*0.6); ctx.lineTo(vectorLength, -headLen*0.6); ctx.fill();
+                    ctx.shadowBlur = 0;
+                    
+                    ctx.rotate(-angle); 
+                    let tipX = (vectorLength + headLen + 15) * Math.cos(angle);
+                    let tipY = (vectorLength + headLen + 15) * Math.sin(angle);
+                    ctx.font = "bold 18px Arial"; 
+                    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText("B", tipX, tipY);
+                    
+                    ctx.restore();
+                }
+            }
+
+            if (activeTool === 'gauss') drawModernProbe(isRight);
+            else drawCompass();
+
+            drawHolographicPanel(isRight);
+            
+            if (canvas.style.cursor === 'grab' || probe.dragging) {
+                let boxW = 150; let boxH = 65;
+                let boxX = probe.x > cx ? probe.x + 35 : probe.x - boxW - 35;
+                let boxY = probe.y - boxH/2;
+                ctx.beginPath(); ctx.roundRect(boxX-2, boxY-2, boxW+4, boxH+4, 10);
+                ctx.strokeStyle = "rgba(250, 204, 21, 0.4)"; ctx.lineWidth = 2; ctx.stroke();
+            }
+        }
+
+        function drawCardboardPlane() {
+            if (viewMode === 'symbols') return;
+            ctx.save(); ctx.translate(cx, cy);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.03)"; ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.ellipse(0, 0, planeRx, planeRy, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSymbols() {
+            if (viewMode !== 'symbols' || !isClosed || currentMag === 0) return;
+            const spacing = 60; const cols = 6; const rows = Math.floor(wireHeight / spacing);
+            const startY = cy - (rows * spacing) / 2 + spacing/2;
+
+            for (let i = 1; i <= cols; i++) {
+                let dist = i * spacing + 10;
+                let opacity = Math.max(0.1, 1 - (i * 0.15)) * (currentMag / 10);
+                for (let j = 0; j < rows; j++) {
+                    let y = startY + j * spacing;
+                    if (currentDirection === 1) {
+                        drawCross(cx + dist, y, 10, opacity); drawDot(cx - dist, y, 10, opacity);
+                    } else {
+                        drawDot(cx + dist, y, 10, opacity); drawCross(cx - dist, y, 10, opacity);
+                    }
+                }
+            }
+        }
+
+        function drawFieldLines() {
+            if (viewMode !== 'lines' || !isClosed || currentMag === 0) return;
+
+            ctx.save(); ctx.translate(cx, cy);
+            const numLines = 5; const step = planeRx / (numLines + 1);
+            ctx.lineWidth = 2;
+            
+            for (let i = 1; i <= numLines; i++) {
+                const rx = i * step; const ry = rx * (planeRy / planeRx);
+                ctx.strokeStyle = `rgba(16, 185, 129, ${(1 - i*0.15) * (currentMag/10)})`;
+                ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+
+                const numArrows = 6;
+                for(let j=0; j<numArrows; j++) {
+                    let t = (j / numArrows * Math.PI * 2);
+                    if (currentDirection === 1) t -= (time * 0.015);
+                    else t += (time * 0.015);
+                    
+                    let px = rx * Math.cos(t); let py = ry * Math.sin(t);
+                    let angle = getFieldVectorAt(cx + px, cy + py);
+                    
+                    ctx.save();
+                    ctx.translate(px, py); ctx.rotate(angle);
+                    ctx.fillStyle = `rgba(16, 185, 129, ${0.4 + (currentMag/10)*0.6})`;
+                    ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-6, 6); ctx.lineTo(-6, -6); ctx.fill();
+                    ctx.restore();
+                }
+            }
+            ctx.restore();
+        }
+
+        function drawIronFilings() {
+            if (viewMode !== 'filings') return;
+
+            ctx.save(); ctx.translate(cx, cy); ctx.lineWidth = 1.5;
+            filings.forEach(f => {
+                let targetAngle;
+                
+                if (isClosed && currentMag > 0) {
+                    targetAngle = getFieldVectorAt(cx + f.x, cy + f.y);
+                    let diff = targetAngle - f.angle;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    
+                    let alignmentSpeed = 0.02 + (currentMag * 0.02);
+                    f.angle += diff * alignmentSpeed; 
+                }
+
+                ctx.strokeStyle = `rgba(200, 200, 210, ${f.opacity})`;
+                let dx = Math.cos(f.angle) * f.length / 2; let dy = Math.sin(f.angle) * f.length / 2;
+                ctx.beginPath(); ctx.moveTo(f.x - dx, f.y - dy); ctx.lineTo(f.x + dx, f.y + dy); ctx.stroke();
+            });
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid(); 
+            drawCircuit();
+            drawCardboardPlane();
+            drawMainWire();
+            drawSymbols();
+            drawFieldLines();
+            drawIronFilings();
+            drawTool();
+            
+            time++;
+            requestAnimationFrame(draw);
+        }
+
+        resize();
+        updateMath();
+        draw();
+    </script>
+</body>
+</html>
