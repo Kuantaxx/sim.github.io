@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manyetik Kuvvet Keşif Laboratuvarı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        :root {
+            --bg-color: #0B0F19; --panel-bg: rgba(16, 24, 39, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.1); --text-main: #F3F4F6;
+            --text-muted: #9CA3AF; 
+            --color-i: #FBBF24; --color-l: #38BDF8; --color-b: #34D399;
+            --color-angle: #C084FC; --color-f: #F87171; 
+        }
+
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); }
+        
+        #ui-panel {
+            position: absolute; top: 15px; left: 15px; width: 320px;
+            background: var(--panel-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border); border-radius: 16px; padding: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); pointer-events: auto; user-select: none;
+            max-height: 94vh; overflow-y: auto;
+        }
+
+        #ui-panel::-webkit-scrollbar { width: 6px; }
+        #ui-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        .control-group { margin-bottom: 22px; }
+        .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: #E5E7EB; }
+        
+        .segmented-control { display: flex; background: rgba(0,0,0,0.5); border-radius: 8px; padding: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .segmented-control button { flex: 1; padding: 8px 0; border: none; background: transparent; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: 0.2s; font-family: inherit; }
+        .segmented-control button.active { background: rgba(255,255,255,0.15); color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        #btnMode3D.active { background: rgba(59, 130, 246, 0.3); color: #60A5FA; }
+        #btnMode2D.active { background: rgba(245, 158, 11, 0.3); color: #FBBF24; }
+
+        .action-buttons { display: flex; gap: 10px; margin-bottom: 25px;}
+        .action-buttons button {
+            flex: 1; padding: 12px 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
+            color: #E5E7EB; font-weight: 600; cursor: pointer; transition: 0.15s; font-family: inherit; font-size: 0.8rem;
+        }
+        .action-buttons button:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+        .action-buttons button:active { transform: scale(0.96); }
+
+        input[type=range] { -webkit-appearance: none; width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; outline: none; margin-top: 5px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; cursor: pointer; transition: 0.2s; border: 2px solid #1F2937; }
+        input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.2); }
+        
+        input#sliderI::-webkit-slider-thumb { background: var(--color-i); box-shadow: 0 0 10px var(--color-i); }
+        input#sliderB::-webkit-slider-thumb { background: var(--color-b); box-shadow: 0 0 10px var(--color-b); }
+        input#sliderL::-webkit-slider-thumb { background: var(--color-l); box-shadow: 0 0 10px var(--color-l); }
+        input#sliderAngle::-webkit-slider-thumb { background: var(--color-angle); box-shadow: 0 0 10px var(--color-angle); }
+
+        .vec { display: inline-block; position: relative; font-style: italic; font-weight: 700; padding-top: 2px;}
+        .vec::before { content: '→'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: normal; font-style: normal; }
+
+        .legend { display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; color: #9CA3AF; margin-top: 20px;}
+        .legend-item { display: flex; align-items: center; gap: 8px; font-weight: 500;}
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        
+        <div class="control-group">
+            <div class="segmented-control" style="margin-top: 0; margin-bottom: 0;">
+                <button id="btnMode3D" class="active">3D Perspektif</button>
+                <button id="btnMode2D">2D Kuş Bakışı</button>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="btnToggleI">Akım Yönünü Değiştir</button>
+            <button id="btnToggleB">Manyetik Alanı Değiştir</button>
+        </div>
+
+        <div class="control-group">
+            <div class="control-header"><span>Akım (<i style="font-weight: bold;">i</i>)</span></div>
+            <input type="range" id="sliderI" min="0" max="10" value="5" step="1">
+        </div>
+
+        <div class="control-group">
+            <div class="control-header"><span>Manyetik Alan (<span class="vec">B</span>)</span></div>
+            <input type="range" id="sliderB" min="1" max="5" value="3" step="1">
+        </div>
+
+        <div class="control-group">
+            <div class="control-header"><span>Tel Boyu (<i style="font-weight: bold;">L</i>)</span></div>
+            <input type="range" id="sliderL" min="1" max="8" value="4" step="1">
+        </div>
+
+        <div class="control-group" style="margin-bottom: 0;">
+            <div class="control-header"><span>Açı (θ)</span></div>
+            <input type="range" id="sliderAngle" min="0" max="180" value="90" step="1">
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background:var(--color-i);"></div> <i>i</i> (Akım)</div>
+            <div class="legend-item"><div class="dot" style="background:var(--color-l);"></div> <i>L</i> (Tel Uzunluğu)</div>
+            <div class="legend-item"><div class="dot" style="background:var(--color-b);"></div> <span class="vec">B</span> (Manyetik Alan)</div>
+            <div class="legend-item"><div class="dot" style="background:var(--color-f);"></div> <span class="vec">F</span> (Oluşan Kuvvet)</div>
+        </div>
+    </div>
+
+    <script>
+        // --- SAHNE KURULUMU ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0B0F19);
+        
+        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const pos3D = new THREE.Vector3(25, 25, 35);
+        const pos2D = new THREE.Vector3(0, 60, 0.1); 
+        camera.position.copy(pos3D);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+        
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 30, 20); scene.add(dirLight);
+
+        // --- YARDIMCI GÖRSELLER (Optimize Edilmiş Etiketler) ---
+        function createDynamicSprite(text, color, isVector = false, isWide = true) {
+            const canvas = document.createElement('canvas');
+            canvas.width = isWide ? 256 : 128; 
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+            // DÜZELTME 1: Etiket boyutları küçültüldü ki daha zarif dursun ve çarpışmasın
+            sprite.scale.set(isWide ? 6.5 : 3.5, 3.2, 1);
+            
+            sprite.userData.updateText = function(newText) {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = color;
+                ctx.font = `italic bold 42px Inter`; 
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 5;
+                
+                ctx.fillText(newText, canvas.width/2, 64);
+                
+                if (isVector) {
+                    const totalWidth = ctx.measureText(newText).width;
+                    const startX = canvas.width/2 - totalWidth/2;
+                    const charWidth = ctx.measureText(newText.charAt(0)).width; 
+                    const y = 32; 
+                    
+                    ctx.strokeStyle = color; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(startX + charWidth + 2, y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(startX + charWidth - 4, y - 5); ctx.lineTo(startX + charWidth + 6, y); ctx.lineTo(startX + charWidth - 4, y + 5); ctx.fill();
+                }
+                texture.needsUpdate = true;
+            };
+            sprite.userData.updateText(text);
+            return sprite;
+        }
+
+        function createMagnetLabel(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = `bold 160px Inter`; 
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 10;
+            ctx.fillText(text, 128, 128);
+            const texture = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+            sprite.scale.set(8, 8, 1); 
+            return sprite;
+        }
+
+        function create2DForceSymbol(symbol, color) {
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.beginPath(); ctx.arc(64, 64, 50, 0, 2*Math.PI); ctx.strokeStyle = color; ctx.lineWidth = 10; ctx.stroke();
+            ctx.fillStyle = color;
+            if (symbol === 'in') {
+                ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(35, 35); ctx.lineTo(93, 93); ctx.stroke(); ctx.beginPath(); ctx.moveTo(93, 35); ctx.lineTo(35, 93); ctx.stroke();
+            } else { ctx.beginPath(); ctx.arc(64, 64, 15, 0, 2*Math.PI); ctx.fill(); }
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthTest: false }));
+            sprite.scale.set(8, 8, 1); sprite.visible = false;
+            return sprite;
+        }
+
+        const force2DOut = create2DForceSymbol('out', '#F87171'); const force2DIn = create2DForceSymbol('in', '#F87171');
+        scene.add(force2DOut); scene.add(force2DIn);
+        
+        const label2D = createDynamicSprite("F = 0.0 N", "#F87171", true, true);
+        label2D.position.set(0, 0, 8); 
+        scene.add(label2D);
+
+        // 3D Vektör Okları
+        function createModernArrow(colorHex, labelText, isVector = false, isWide = true) {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: colorHex, emissive: colorHex, emissiveIntensity: 0.4, roughness: 0.2 });
+            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1, 16), mat); shaft.position.y = 0.5; group.add(shaft);
+            const head = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.5, 16), mat); head.position.y = 1; group.add(head);
+            
+            if(labelText) { 
+                const label = createDynamicSprite(labelText, colorHex, isVector, isWide); 
+                group.add(label); 
+                group.userData.label = label;
+            }
+            
+            // DÜZELTME 2: Etiketleri merkezden uzaklaştırmak için özel X ve Z kaydırma eklendi
+            group.userData.setLength = function(len, shiftX = 0, shiftZ = 0) {
+                if (len < 0.1) { group.visible = false; return; }
+                group.visible = true;
+                shaft.scale.set(1, len, 1); shaft.position.y = len / 2; head.position.y = len;
+                if(group.userData.label) {
+                    group.userData.label.position.set(shiftX, len + (isWide ? 1.5 : 1.2), shiftZ);
+                }
+            };
+            
+            group.userData.updateLabel = function(newText) {
+                if(group.userData.label) group.userData.label.userData.updateText(newText);
+            }
+            
+            return group;
+        }
+
+        const gridHelper = new THREE.GridHelper(60, 60, 0x1F2937, 0x111827); gridHelper.position.y = -5; scene.add(gridHelper);
+
+        function createDipoleMagnet() {
+            const group = new THREE.Group();
+            const halfGeo = new THREE.BoxGeometry(6, 8, 1); 
+            
+            const nMesh = new THREE.Mesh(halfGeo, new THREE.MeshStandardMaterial({ color: 0xEF4444, roughness: 0.6 }));
+            nMesh.position.x = 3; 
+            const nLbl = createMagnetLabel("N"); nLbl.position.set(3, 7, 0); 
+            
+            const sMesh = new THREE.Mesh(halfGeo, new THREE.MeshStandardMaterial({ color: 0x3B82F6, roughness: 0.6 }));
+            sMesh.position.x = -3;
+            const sLbl = createMagnetLabel("S"); sLbl.position.set(-3, 7, 0);
+            
+            group.add(nMesh, nLbl, sMesh, sLbl);
+            return group;
+        }
+        
+        const leftMagnet = createDipoleMagnet(); leftMagnet.position.set(-20, 0, 0); scene.add(leftMagnet);
+        const rightMagnet = createDipoleMagnet(); rightMagnet.position.set(20, 0, 0); scene.add(rightMagnet);
+
+        const wireSystem = new THREE.Group(); scene.add(wireSystem);
+        
+        const wireMat = new THREE.MeshStandardMaterial({ color: 0x9CA3AF, metalness: 0.8 });
+        const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 32), wireMat);
+        wire.rotation.z = Math.PI / 2; 
+        wireSystem.add(wire);
+
+        const labelL = createDynamicSprite("L = 4 m", "#38BDF8", false, true);
+        wireSystem.add(labelL);
+
+        const arrowI = createModernArrow('#FBBF24', 'i = 5 A', false, true);
+        arrowI.position.y = 0.5; 
+        wireSystem.add(arrowI);
+
+        const arrowB = createModernArrow('#34D399', 'B = 3 T', true, true); scene.add(arrowB);
+        const arrowF = createModernArrow('#F87171', 'F = 0.0 N', true, true); scene.add(arrowF);
+
+        const angleGroup = new THREE.Group(); scene.add(angleGroup);
+        let arcLine = null; const angleLabel = createDynamicSprite("0°", "#C084FC", false, false); angleGroup.add(angleLabel);
+        angleLabel.scale.set(3,3,1);
+
+        function updateAngleVisual(thetaRad, bDir, iDir, I_mag) {
+            if (arcLine) { angleGroup.remove(arcLine); arcLine.geometry.dispose(); }
+            if (I_mag === 0) { angleLabel.visible = false; return; }
+
+            const vecB = new THREE.Vector3(bDir, 0, 0);
+            const vecI = new THREE.Vector3(iDir, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), -thetaRad);
+
+            const angleBetween = vecB.angleTo(vecI); 
+            if (angleBetween > 0.02) {
+                const pts = []; const radius = 5; const segments = 32;
+                let axis = new THREE.Vector3().crossVectors(vecB, vecI).normalize();
+                if(axis.length() < 0.1) axis.set(0,1,0); 
+                for(let i=0; i<=segments; i++) {
+                    pts.push(vecB.clone().applyAxisAngle(axis, (i/segments)*angleBetween).multiplyScalar(radius));
+                }
+                arcLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xC084FC, linewidth: 2 }));
+                angleGroup.add(arcLine);
+
+                const midAxis = new THREE.Vector3().crossVectors(vecB, vecI).normalize();
+                if(midAxis.length() < 0.1) midAxis.set(0,1,0);
+                // DÜZELTME 3: Açı yazısı biraz daha dışarı itildi
+                angleLabel.position.copy(vecB.clone().applyAxisAngle(midAxis, angleBetween/2).multiplyScalar(radius + 2.5));
+                angleLabel.visible = true;
+                angleLabel.userData.updateText((angleBetween * 180 / Math.PI).toFixed(0) + "°");
+            } else { angleLabel.visible = false; }
+        }
+
+        let is2DMode = false; let bDir = 1; let iDir = 1; 
+        
+        const ui_I = document.getElementById('sliderI');
+        const ui_L = document.getElementById('sliderL');
+        const ui_B = document.getElementById('sliderB');
+        const ui_Angle = document.getElementById('sliderAngle');
+        
+        document.getElementById('btnMode3D').onclick = function() { is2DMode = false; this.classList.add('active'); document.getElementById('btnMode2D').classList.remove('active'); camera.position.copy(pos3D); controls.enableRotate = true; updateSim(); }
+        document.getElementById('btnMode2D').onclick = function() { is2DMode = true; this.classList.add('active'); document.getElementById('btnMode3D').classList.remove('active'); camera.position.copy(pos2D); controls.target.set(0,0,0); controls.enableRotate = false; updateSim(); }
+        
+        document.getElementById('btnToggleI').onclick = function() { iDir *= -1; updateSim(); }
+        document.getElementById('btnToggleB').onclick = function() { bDir *= -1; updateSim(); }
+
+        ui_I.oninput = updateSim; ui_L.oninput = updateSim; ui_B.oninput = updateSim; ui_Angle.oninput = updateSim;
+
+        function updateSim() {
+            const I = parseFloat(ui_I.value);
+            const L = parseFloat(ui_L.value);
+            const B = parseFloat(ui_B.value);
+            const thetaDeg = parseFloat(ui_Angle.value);
+            const thetaRad = thetaDeg * Math.PI / 180;
+
+            const requiredMagnetDepth = L * 4 + 8; 
+            leftMagnet.children[0].scale.z = requiredMagnetDepth; leftMagnet.children[2].scale.z = requiredMagnetDepth;
+            rightMagnet.children[0].scale.z = requiredMagnetDepth; rightMagnet.children[2].scale.z = requiredMagnetDepth;
+
+            leftMagnet.rotation.y = bDir === 1 ? 0 : Math.PI; 
+            rightMagnet.rotation.y = bDir === 1 ? 0 : Math.PI;
+
+            wire.scale.y = L * 4; 
+            wireSystem.rotation.y = -thetaRad; 
+            
+            // DÜZELTME 4: L etiketi telin merkezinden telin uç noktasına kaydırıldı
+            labelL.position.set(L * 2, -1.5, 0); 
+            labelL.userData.updateText(`L = ${L} m`);
+            labelL.visible = L > 0; 
+
+            // DÜZELTME 5: Vektör Etiketleri Lokal Olarak Kaydırıldı (Birbirleriyle çakışmazlar)
+            if (I !== 0) {
+                // Akım etiketi kameraya (lokal Z'ye) doğru 2.5 birim kaydırıldı
+                arrowI.userData.setLength(I * 0.4 + 2, 0, 2.5);
+                arrowI.rotation.z = iDir > 0 ? -Math.PI / 2 : Math.PI / 2;
+                arrowI.userData.updateLabel(`i = ${I} A`);
+            } else { arrowI.userData.setLength(0); }
+
+            // Manyetik alan etiketi geriye (lokal Z'de eksi yöne) -2.5 birim kaydırıldı
+            arrowB.userData.setLength(B * 1.5 + 4, 0, -2.5);
+            arrowB.rotation.z = bDir > 0 ? -Math.PI/2 : Math.PI/2;
+            arrowB.position.x = bDir > 0 ? -4 : 4;
+            arrowB.userData.updateLabel(`B = ${B} T`);
+
+            updateAngleVisual(thetaRad, bDir, iDir, I);
+
+            const vecB = new THREE.Vector3(bDir, 0, 0);
+            const vecI = new THREE.Vector3(iDir, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), -thetaRad);
+            const forceVec = new THREE.Vector3().crossVectors(vecI, vecB);
+            
+            const F_mag = I * L * B * Math.sin(thetaRad);
+            const fText = "F = " + F_mag.toFixed(1) + " N";
+            
+            if (F_mag < 0.1) {
+                arrowF.userData.setLength(0); 
+                force2DOut.visible = false; force2DIn.visible = false;
+                label2D.visible = false;
+            } else {
+                const isForceUp = forceVec.y > 0;
+
+                if (is2DMode) {
+                    arrowF.visible = false; 
+                    if(isForceUp) { force2DOut.visible = true; force2DIn.visible = false; }
+                    else { force2DOut.visible = false; force2DIn.visible = true; }
+                    
+                    label2D.userData.updateText(fText);
+                    label2D.visible = true;
+                } else {
+                    force2DOut.visible = false; force2DIn.visible = false;
+                    label2D.visible = false;
+                    
+                    arrowF.userData.updateLabel(fText);
+                    // Kuvvet etiketi sağa doğru (lokal X ekseninde) 3 birim kaydırıldı
+                    arrowF.userData.setLength(F_mag * 0.05 + 3, 3, 0); 
+                    arrowF.rotation.x = isForceUp ? 0 : Math.PI;
+                    arrowF.visible = true; 
+                }
+            }
+        }
+
+        updateSim();
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    </script>
+</body>
+</html>
