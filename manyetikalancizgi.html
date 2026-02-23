@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manyetik Alan Çizgileri Simülasyonu</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            user-select: none;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        #canvas:active {
+            cursor: grabbing;
+        }
+
+        .ui-panel {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            width: 220px;
+            z-index: 10;
+        }
+
+        .ui-panel h2 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+            color: #0f172a;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:active { transform: scale(0.96); }
+        button:hover { opacity: 0.9; }
+
+        #btnAdd {
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        #btnClear {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+        }
+
+        .sensor {
+            background-color: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #334155;
+            font-size: 1rem;
+            border: 1px solid #cbd5e1;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 350px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin: 0 0 16px 0;
+            color: #0f172a;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .modal-content ul {
+            margin: 0 0 24px 0;
+            padding-left: 20px;
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .modal-content li {
+            margin-bottom: 8px;
+        }
+
+        #btnStart {
+            width: 100%;
+            background-color: #10b981;
+            color: white;
+            padding: 12px;
+            font-size: 1rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="instructionModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Neler Yapabilirsiniz?</h3>
+            <ul>
+                <li>Mıknatısları gövdelerinden tutarak <strong>sürükleyebilirsiniz</strong>.</li>
+                <li>Yeşil çemberden tutarak <strong>döndürebilirsiniz</strong>.</li>
+                <li>Panelden yeni mıknatıs <strong>ekleyebilir</strong> veya ekranı <strong>temizleyebilirsiniz</strong>.</li>
+                <li>İmlecinizi ekranda gezdirerek manyetik alan şiddetini <strong>ölçebilirsiniz</strong>.</li>
+            </ul>
+            <button id="btnStart">Başla</button>
+        </div>
+    </div>
+
+    <div class="ui-panel">
+        <h2>Manyetik Alan</h2>
+        <div class="btn-group">
+            <button id="btnAdd">+ Ekle</button>
+            <button id="btnClear">Temizle</button>
+        </div>
+        <div class="sensor" id="sensorReadout">0.00 T</div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const sensorReadout = document.getElementById('sensorReadout');
+        const modal = document.getElementById('instructionModal');
+        const btnStart = document.getElementById('btnStart');
+
+        btnStart.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        let width, height;
+        let magnets = [];
+        
+        let isDragging = false;
+        let isRotating = false;
+        let activeMagnet = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            draw();
+        }
+        window.addEventListener('resize', resize);
+
+        class Magnet {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.w = 160; 
+                this.h = 44;  
+                this.poleDist = this.w * 0.40; 
+                this.strength = 10000; 
+                this.angle = 0; 
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                ctx.shadowColor = 'rgba(15, 23, 42, 0.15)';
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetY = 6;
+
+                // Güney (Mavi)
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath();
+                if(ctx.roundRect) ctx.roundRect(-this.w/2, -this.h/2, this.w/2, this.h, [8, 0, 0, 8]);
+                else ctx.fillRect(-this.w/2, -this.h/2, this.w/2, this.h);
+                ctx.fill();
+                
+                // Kuzey (Kırmızı)
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                if(ctx.roundRect) ctx.roundRect(0, -this.h/2, this.w/2, this.h, [0, 8, 8, 0]);
+                else ctx.fillRect(0, -this.h/2, this.w/2, this.h);
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('S', -this.w/4, 2);
+                ctx.fillText('N', this.w/4, 2);
+
+                // Döndürme Tutamacı
+                ctx.beginPath();
+                ctx.arc(this.w/2 + 22, 0, 12, 0, Math.PI * 2);
+                ctx.fillStyle = '#10b981';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.fillText('↻', this.w/2 + 22, 1);
+
+                ctx.restore();
+            }
+
+            isInside(px, py) {
+                let dx = px - this.x;
+                let dy = py - this.y;
+                let rx = dx * Math.cos(this.angle) + dy * Math.sin(this.angle);
+                let ry = -dx * Math.sin(this.angle) + dy * Math.cos(this.angle);
+
+                return rx >= -this.w/2 && rx <= this.w/2 &&
+                       ry >= -this.h/2 && ry <= this.h/2;
+            }
+
+            isHandle(px, py) {
+                let hx = this.x + (this.w/2 + 22) * Math.cos(this.angle);
+                let hy = this.y + (this.w/2 + 22) * Math.sin(this.angle);
+                let dist = Math.sqrt((px - hx)**2 + (py - hy)**2);
+                return dist <= 15; 
+            }
+        }
+
+        function getBField(x, y) {
+            let Bx = 0;
+            let By = 0;
+
+            for (let m of magnets) {
+                let nx = m.x + m.poleDist * Math.cos(m.angle);
+                let ny = m.y + m.poleDist * Math.sin(m.angle);
+                let dxN = x - nx;
+                let dyN = y - ny;
+                let rN = Math.sqrt(dxN*dxN + dyN*dyN) + 0.001; 
+                
+                let sx = m.x - m.poleDist * Math.cos(m.angle);
+                let sy = m.y - m.poleDist * Math.sin(m.angle);
+                let dxS = x - sx;
+                let dyS = y - sy;
+                let rS = Math.sqrt(dxS*dxS + dyS*dyS) + 0.001;
+
+                Bx += (m.strength * dxN) / (rN*rN*rN);
+                By += (m.strength * dyN) / (rN*rN*rN);
+                
+                Bx -= (m.strength * dxS) / (rS*rS*rS);
+                By -= (m.strength * dyS) / (rS*rS*rS);
+            }
+            let mag = Math.sqrt(Bx*Bx + By*By);
+            return { Bx, By, mag };
+        }
+
+        function getNormalizedB(x, y) {
+            let field = getBField(x, y);
+            if (field.mag === 0) return {x: 0, y: 0, mag: 0};
+            return {x: field.Bx / field.mag, y: field.By / field.mag, mag: field.mag};
+        }
+
+        // direction: 1 (Kuzeyden çıkış), -1 (Güneye giriş - geriye doğru hesaplama)
+        function rk4Step(x, y, stepSize, direction) {
+            let k1 = getNormalizedB(x, y);
+            if (k1.mag < 0.0001) return null;
+
+            let k2 = getNormalizedB(x + k1.x * stepSize * 0.5 * direction, y + k1.y * stepSize * 0.5 * direction);
+            let k3 = getNormalizedB(x + k2.x * stepSize * 0.5 * direction, y + k2.y * stepSize * 0.5 * direction);
+            let k4 = getNormalizedB(x + k3.x * stepSize * direction, y + k3.y * stepSize * direction);
+
+            let dx = (stepSize / 6) * (k1.x + 2*k2.x + 2*k3.x + k4.x) * direction;
+            let dy = (stepSize / 6) * (k1.y + 2*k2.y + 2*k3.y + k4.y) * direction;
+
+            return { x: x + dx, y: y + dy };
+        }
+
+        function traceAndDrawLine(startMagnet, startX, startY, direction) {
+            let points = [];
+            let currentX = startX;
+            let currentY = startY;
+
+            const stepSize = 1.2; 
+            const maxSteps = 3000;
+            let stepCount = 0;
+            let hasExitedStartMagnet = false;
+
+            points.push({x: currentX, y: currentY});
+
+            while (stepCount < maxSteps) {
+                let nextPos = rk4Step(currentX, currentY, stepSize, direction);
+                if (!nextPos) break;
+
+                currentX = nextPos.x;
+                currentY = nextPos.y;
+                points.push({x: currentX, y: currentY});
+
+                let inStartMagnet = startMagnet.isInside(currentX, currentY);
+                if (!inStartMagnet) {
+                    hasExitedStartMagnet = true;
+                } else if (hasExitedStartMagnet) {
+                    break; 
+                }
+
+                let hitOtherMagnet = false;
+                for (let mag of magnets) {
+                    if (mag !== startMagnet && mag.isInside(currentX, currentY)) {
+                        hitOtherMagnet = true;
+                        break;
+                    }
+                }
+                if (hitOtherMagnet) break;
+
+                if (currentX < 0 || currentX > width || currentY < 0 || currentY > height) break;
+                
+                stepCount++;
+            }
+
+            if (points.length < 2) return;
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.stroke();
+
+            let visiblePoints = points.filter(p => !magnets.some(m => m.isInside(p.x, p.y)));
+            if (visiblePoints.length > 20) {
+                for (let i = 60; i < visiblePoints.length - 20; i += 120) {
+                    let p = visiblePoints[i];
+                    let field = getNormalizedB(p.x, p.y);
+                    // Ok yönü daima gerçek B alanının yönündedir (Geriye doğru hesaplansa bile)
+                    drawArrow(p.x, p.y, Math.atan2(field.y, field.x));
+                }
+            }
+        }
+
+        function drawFieldLines() {
+            if (magnets.length === 0) return;
+
+            ctx.lineWidth = 1.8;
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.7)'; 
+
+            const numLines = 14; 
+            const startRadius = 3; 
+
+            for (let m of magnets) {
+                let nx = m.x + m.poleDist * Math.cos(m.angle);
+                let ny = m.y + m.poleDist * Math.sin(m.angle);
+                
+                let sx = m.x - m.poleDist * Math.cos(m.angle);
+                let sy = m.y - m.poleDist * Math.sin(m.angle);
+                
+                for (let i = 0; i < numLines; i++) {
+                    let angle = m.angle + ((i + 0.5) / numLines) * Math.PI * 2;
+                    
+                    // Kuzeyden ileri doğru çizgi (Çıkış)
+                    traceAndDrawLine(m, nx + Math.cos(angle) * startRadius, ny + Math.sin(angle) * startRadius, 1);
+                    
+                    // Güneyden geriye doğru çizgi (Giriş)
+                    traceAndDrawLine(m, sx + Math.cos(angle) * startRadius, sy + Math.sin(angle) * startRadius, -1);
+                }
+            }
+        }
+
+        function drawArrow(x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.fillStyle = '#334155';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-10, -5);
+            ctx.lineTo(-10, 5);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            drawFieldLines(); 
+            for (let m of magnets) { m.draw(ctx); }
+            updateSensor();
+        }
+
+        function updateSensor() {
+            if (magnets.length === 0) {
+                sensorReadout.innerText = "0.00 T";
+                return;
+            }
+            let field = getBField(mouseX, mouseY);
+            let teslaValue = (field.mag / 500).toFixed(4); 
+            sensorReadout.innerText = `${teslaValue} T`;
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!modal.classList.contains('hidden')) return;
+
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            for (let i = magnets.length - 1; i >= 0; i--) {
+                if (magnets[i].isHandle(mouseX, mouseY)) {
+                    isRotating = true;
+                    activeMagnet = magnets[i];
+                    magnets.splice(i, 1);
+                    magnets.push(activeMagnet); 
+                    break;
+                } else if (magnets[i].isInside(mouseX, mouseY)) {
+                    isDragging = true;
+                    activeMagnet = magnets[i];
+                    dragOffsetX = mouseX - activeMagnet.x;
+                    dragOffsetY = mouseY - activeMagnet.y;
+                    magnets.splice(i, 1);
+                    magnets.push(activeMagnet); 
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            if (isDragging && activeMagnet) {
+                activeMagnet.x = mouseX - dragOffsetX;
+                activeMagnet.y = mouseY - dragOffsetY;
+            } else if (isRotating && activeMagnet) {
+                let targetAngle = Math.atan2(mouseY - activeMagnet.y, mouseX - activeMagnet.x);
+                
+                const snapTolerance = 8 * Math.PI / 180; 
+                let snapped = false;
+                for (let i = -4; i <= 4; i++) {
+                    let snapAngle = i * Math.PI / 4; 
+                    if (Math.abs(targetAngle - snapAngle) < snapTolerance) {
+                        activeMagnet.angle = snapAngle;
+                        snapped = true;
+                        break;
+                    }
+                }
+                if (!snapped) activeMagnet.angle = targetAngle;
+            }
+            requestAnimationFrame(draw); 
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            isRotating = false;
+            activeMagnet = null;
+        });
+
+        document.getElementById('btnAdd').addEventListener('click', () => {
+            let x = width / 2 + (Math.random() * 80 - 40);
+            let y = height / 2 + (Math.random() * 80 - 40);
+            magnets.push(new Magnet(x, y));
+            draw();
+        });
+
+        document.getElementById('btnClear').addEventListener('click', () => {
+            magnets = [];
+            draw();
+        });
+
+        resize();
+        let leftMag = new Magnet(width/2 - 170, height/2);
+        leftMag.angle = 0; 
+        magnets.push(leftMag);
+
+        let rightMag = new Magnet(width/2 + 170, height/2);
+        rightMag.angle = Math.PI; 
+        magnets.push(rightMag);
+        
+        draw();
+    </script>
+</body>
+</html>
