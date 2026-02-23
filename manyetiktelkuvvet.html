@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manyetik Kuvvet Keşif Laboratuvarı</title>
+    <title>Akım Geçen Tele Etki Eden Manyetik Kuvvet</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -77,26 +77,26 @@
 
         <div class="action-buttons">
             <button id="btnToggleI">Akım Yönünü Değiştir</button>
-            <button id="btnToggleB">Manyetik Alanı Değiştir</button>
+            <button id="btnToggleB">Manyetik Alan Yönünü Değiştir</button>
         </div>
 
         <div class="control-group">
-            <div class="control-header"><span>Akım (<i style="font-weight: bold;">i</i>)</span></div>
+            <div class="control-header"><span>Akım Şiddeti(<i style="font-weight: bold;">i</i>)</span></div>
             <input type="range" id="sliderI" min="0" max="10" value="5" step="1">
         </div>
 
         <div class="control-group">
-            <div class="control-header"><span>Manyetik Alan (<span class="vec">B</span>)</span></div>
+            <div class="control-header"><span>Manyetik Alan Büyüklüğü (<span class="vec">B</span>)</span></div>
             <input type="range" id="sliderB" min="1" max="5" value="3" step="1">
         </div>
 
         <div class="control-group">
-            <div class="control-header"><span>Tel Boyu (<i style="font-weight: bold;">L</i>)</span></div>
+            <div class="control-header"><span>Telin Boyu (<i style="font-weight: bold;">L</i>)</span></div>
             <input type="range" id="sliderL" min="1" max="8" value="4" step="1">
         </div>
 
         <div class="control-group" style="margin-bottom: 0;">
-            <div class="control-header"><span>Açı (θ)</span></div>
+            <div class="control-header"><span>Manyetik Alan ile Akım Arasındaki Açı (θ)</span></div>
             <input type="range" id="sliderAngle" min="0" max="180" value="90" step="1">
         </div>
 
