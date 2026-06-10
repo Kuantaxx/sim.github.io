@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serbest Düşme Simülasyonu</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@500;700&display=swap');
+
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(22, 28, 45, 0.7);
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #00f0ff; 
+            --primary-hover: #00c3d9;
+            --accent: #ff007f; 
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --warning: #f59e0b;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at top right, #1a2035 0%, transparent 40%),
+                              radial-gradient(circle at bottom left, #1a2035 0%, transparent 40%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 340px 360px;
+            gap: 20px;
+            width: 100%;
+            max-width: 1350px;
+            height: 90vh; 
+            min-height: 650px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard:fullscreen {
+            max-width: 100vw; width: 100vw; height: 100vh;
+            border-radius: 0; border: none;
+            background-color: var(--bg-color);
+        }
+
+        .panel { display: flex; flex-direction: column; gap: 15px; min-height: 0; }
+
+        .panel-header {
+            font-size: 18px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+            margin: 0; color: var(--primary);
+        }
+
+        .canvas-container {
+            position: relative; background: #0d1117; border-radius: 16px;
+            border: 1px solid var(--border); overflow: hidden; display: flex;
+            height: 100%; box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .btn-fullscreen {
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border);
+            color: var(--text-main); width: 40px; height: 40px;
+            border-radius: 10px; font-size: 18px; display: flex;
+            justify-content: center; align-items: center; cursor: pointer;
+            transition: 0.2s; z-index: 10;
+        }
+        .btn-fullscreen:hover { background: var(--primary); color: #000; transform: scale(1.05); }
+
+        .control-group { background: var(--card-bg); padding: 12px 15px; border-radius: 16px; border: 1px solid var(--border); }
+        
+        .input-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .input-row:last-child { margin-bottom: 0; }
+        label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+
+        select {
+            background: #0f172a; color: var(--text-main); border: 1px solid var(--border);
+            padding: 6px 10px; border-radius: 8px; font-family: 'Inter', sans-serif;
+            font-size: 12px; outline: none; cursor: pointer; width: 140px; transition: 0.2s;
+        }
+        select:focus { border-color: var(--primary); }
+
+        /* Sürgü (Slider) Tasarımları */
+        input[type=range] { -webkit-appearance: none; width: 100px; background: transparent; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; background: var(--border); border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px; width: 16px; border-radius: 50%; cursor: pointer;
+            -webkit-appearance: none; margin-top: -5px; transition: 0.2s;
+        }
+        #rngStart1::-webkit-slider-thumb { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+        #rngStart2::-webkit-slider-thumb { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+        /* Anlık Değerler Tablosu (2x2 Grid) */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+        .stat-card { background: var(--card-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
+        .stat-card span { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px; }
+        .stat-card strong { font-family: 'Fira Code', monospace; font-size: 18px; font-weight: 700; color: var(--text-main); }
+        .stat-card.blue strong { color: var(--primary); }
+        .stat-card.pink strong { color: var(--accent); }
+
+        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+        button.action-btn {
+            border: none; padding: 12px; border-radius: 10px;
+            font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
+            cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-start { background: var(--primary); color: #000; box-shadow: 0 0 15px rgba(0, 240, 255, 0.3); }
+        .btn-start:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 240, 255, 0.5); }
+        .btn-pause { background: var(--warning); color: #000; }
+        .btn-pause:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+        .btn-reset:hover { background: rgba(239, 68, 68, 0.1); transform: translateY(-2px); }
+
+        .table-wrapper { flex: 1; overflow-y: auto; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-family: 'Fira Code', monospace; font-size: 13px; }
+        thead { position: sticky; top: 0; background: #0f172a; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        th { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; padding: 12px 8px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #e2e8f0; }
+        tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        @media (max-width: 1100px) {
+            .dashboard { grid-template-columns: 1fr 1fr; height: auto; min-height: 100vh; border-radius: 0; border: none; }
+            .canvas-container { grid-column: span 2; height: 500px; }
+            .panel { height: auto; }
+        }
+        @media (max-width: 768px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .canvas-container { grid-column: span 1; height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard" id="appDashboard">
+        
+        <div class="canvas-container" id="canvasWrapper">
+            <button class="btn-fullscreen" onclick="toggleFullScreen()" title="Tam Ekran">⛶</button>
+            <canvas id="simCanvas"></canvas>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-header">Değişkenler</h2>
+            <div class="control-group">
+                <div class="input-row">
+                    <label>Sol Cisim</label>
+                    <select id="selObj1" onchange="changeBalls()"></select>
+                </div>
+                <div class="input-row">
+                    <label>Sağ Cisim</label>
+                    <select id="selObj2" onchange="changeBalls()"></select>
+                </div>
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+                
+                <div class="input-row">
+                    <label>Sol Cisim Başlangıç</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="rngStart1" min="0" max="20" step="1" value="0" oninput="changeBalls()">
+                        <span id="lblStart1" style="width: 25px; text-align: right; color: var(--primary); font-size: 13px; font-weight: bold;">0m</span>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <label>Sağ Cisim Başlangıç</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="rngStart2" min="0" max="20" step="1" value="0" oninput="changeBalls()">
+                        <span id="lblStart2" style="width: 25px; text-align: right; color: var(--accent); font-size: 13px; font-weight: bold;">0m</span>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+                <div class="input-row">
+                    <label>Oynatma Hızı</label>
+                    <select id="selSpeed">
+                        <option value="1">1x (Normal)</option>
+                        <option value="0.5">0.5x (Yarı Hız)</option>
+                        <option value="0.25">0.25x (Yavaş Çekim)</option>
+                        <option value="0.1">0.1x (Çok Yavaş)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span>Zaman (t)</span>
+                    <strong id="valTime">0.00 s</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Hız </span>
+                    <strong id="valVel">0.00 m/s</strong>
+                </div>
+                <div class="stat-card blue">
+                    <span>Sol Konum</span>
+                    <strong id="valDist1">0.00 m</strong>
+                </div>
+                <div class="stat-card pink">
+                    <span>Sağ Konum</span>
+                    <strong id="valDist2">0.00 m</strong>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="action-btn btn-start" onclick="startSimulation()">Sistemi Başlat</button>
+                <button class="action-btn btn-pause" onclick="pauseSimulation()">Durdur / Beklet</button>
+                <button class="action-btn btn-reset" onclick="resetSimulation()">Sıfırla</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-header">Veriler</h2>
+            <div class="table-wrapper">
+                <table id="dataTable">
+                    <thead><tr><th>Geçen Süre (s)</th><th>Sol Cisim (m)</th><th>Sağ Cisim (m)</th></tr></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        const appDashboard = document.getElementById('appDashboard');
+        const tableBody = document.getElementById('tableBody');
+        
+        const selObj1 = document.getElementById('selObj1');
+        const selObj2 = document.getElementById('selObj2');
+        const selSpeed = document.getElementById('selSpeed');
+        const rngStart1 = document.getElementById('rngStart1');
+        const rngStart2 = document.getElementById('rngStart2');
+
+        let canvasW, canvasH;
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                appDashboard.requestFullscreen().catch(err => { alert(`Hata: ${err.message}`); });
+            } else { document.exitFullscreen(); }
+        }
+
+        document.addEventListener('fullscreenchange', () => { setTimeout(resizeCanvas, 100); });
+
+        function resizeCanvas() {
+            const rect = canvasWrapper.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+            canvasW = rect.width; canvasH = rect.height;
+            ctx.scale(dpr, dpr);
+            
+            // Canvas boyuna göre maksimum yükseklik sürgüsünü sınırla
+            if(canvasH) {
+                let maxAllowed = Math.max(5, Math.floor((canvasH - initialY - 30) / meterScale));
+                rngStart1.max = maxAllowed; rngStart2.max = maxAllowed;
+                if(parseInt(rngStart1.value) > maxAllowed) rngStart1.value = maxAllowed;
+                if(parseInt(rngStart2.value) > maxAllowed) rngStart2.value = maxAllowed;
+            }
+
+            if(obj1 && obj2 && !isRunning) { changeBalls(); } 
+            else if (obj1 && obj2) { drawScene(); }
+        }
+
+        // Cisim doku çizimleri (Aynı gerçekçi renderlar)
+        const drawTextures = {
+            basketbol: (ctx, x, y, r) => {
+                ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#262626'; ctx.lineWidth = r*0.1;
+                ctx.beginPath(); ctx.moveTo(x, y-r); ctx.lineTo(x, y+r); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x-r, y); ctx.lineTo(x+r, y); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x-r*0.5, y, r*0.8, -Math.PI/3, Math.PI/3); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x+r*0.5, y, r*0.8, Math.PI-Math.PI/3, Math.PI+Math.PI/3); ctx.stroke();
+            },
+            bowling: (ctx, x, y, r) => {
+                const grad = ctx.createRadialGradient(x-r/3, y-r/3, r/4, x, y, r);
+                grad.addColorStop(0, '#8b5cf6'); grad.addColorStop(1, '#0f172a');
+                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath(); ctx.arc(x+r*0.2, y-r*0.2, r*0.15, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x-r*0.2, y-r*0.2, r*0.15, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y+r*0.2, r*0.18, 0, Math.PI*2); ctx.fill();
+            },
+            futbol: (ctx, x, y, r) => {
+                ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#0f172a'; ctx.beginPath();
+                ctx.moveTo(x + r*0.35 * Math.cos(0), y + r*0.35 * Math.sin(0));
+                for (let i = 1; i <= 5; i++) ctx.lineTo(x + r*0.35 * Math.cos(i * 2 * Math.PI / 5), y + r*0.35 * Math.sin(i * 2 * Math.PI / 5));
+                ctx.fill();
+                for(let i=0; i<5; i++){
+                    let angle = (i * Math.PI * 2) / 5;
+                    ctx.beginPath(); ctx.arc(x + Math.cos(angle)*r*0.75, y + Math.sin(angle)*r*0.75, r*0.25, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
+            },
+            tenis: (ctx, x, y, r) => {
+                ctx.fillStyle = '#a3e635'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = r*0.15;
+                ctx.beginPath(); ctx.arc(x-r*0.6, y, r*0.7, -Math.PI/2, Math.PI/2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(x+r*0.6, y, r*0.7, Math.PI/2, -Math.PI/2); ctx.stroke();
+            },
+            golf: (ctx, x, y, r) => {
+                ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                for(let i=-r; i<r; i+=r*0.4) {
+                    for(let j=-r; j<r; j+=r*0.4) {
+                        if(i*i + j*j < r*r*0.8) { ctx.beginPath(); ctx.arc(x+i, y+j, r*0.1, 0, Math.PI*2); ctx.fill(); }
+                    }
+                }
+                ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.stroke();
+            },
+            bilye: (ctx, x, y, r) => {
+                const grad = ctx.createRadialGradient(x-r/3, y-r/3, r*0.1, x, y, r);
+                grad.addColorStop(0, 'rgba(255,255,255,0.9)'); grad.addColorStop(1, 'rgba(14, 165, 233, 0.6)');
+                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#0284c7'; ctx.lineWidth = r*0.4; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.moveTo(x-r*0.5, y-r*0.5); ctx.quadraticCurveTo(x, y+r, x+r*0.5, y-r*0.5); ctx.stroke();
+            }
+        };
+
+        const ballLibrary = {
+            basketbol: { name: 'Basketbol Topu', radius: 24, type: 'basketbol' },
+            bowling:   { name: 'Bowling Topu', radius: 24, type: 'bowling' },
+            futbol:    { name: 'Futbol Topu', radius: 20, type: 'futbol' },
+            tenis:     { name: 'Tenis Topu', radius: 12, type: 'tenis' },
+            golf:      { name: 'Golf Topu', radius: 8, type: 'golf' },
+            bilye:     { name: 'Cam Bilye', radius: 6, type: 'bilye' }
+        };
+
+        for (let key in ballLibrary) {
+            selObj1.add(new Option(ballLibrary[key].name, key));
+            selObj2.add(new Option(ballLibrary[key].name, key));
+        }
+        selObj1.value = 'basketbol'; selObj2.value = 'bowling';
+
+        // Bağımsız Fizik Değişkenleri
+        let obj1, obj2;
+        const gravity = 10; 
+        const meterScale = 20; 
+        const initialY = 60; // 0 Metre Noktası
+        
+        let time = 0;
+        const baseDt = 0.02; 
+        
+        let traces = [];
+        let nextTraceTime = 0.2; 
+        const traceInterval = 0.2; 
+        
+        let animationId;
+        let isRunning = false;
+
+        function changeBalls() {
+            // Sürgülerdeki anlık değeri metin olarak yazdır
+            document.getElementById('lblStart1').innerText = rngStart1.value + 'm';
+            document.getElementById('lblStart2').innerText = rngStart2.value + 'm';
+
+            obj1 = { 
+                ...ballLibrary[selObj1.value], 
+                x: canvasW ? canvasW * 0.35 : 150, 
+                startDist: parseFloat(rngStart1.value), // Bağımsız başlangıç yüksekliği
+                hitGround: false
+            }; 
+            obj2 = { 
+                ...ballLibrary[selObj2.value], 
+                x: canvasW ? canvasW * 0.75 : 300, 
+                startDist: parseFloat(rngStart2.value), 
+                hitGround: false
+            };
+            resetSimulation();
+        }
+
+        function drawGridAndMeter() {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.05)"; ctx.lineWidth = 1;
+            for(let i = 0; i <= canvasW; i += meterScale) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvasH); ctx.stroke(); }
+            for(let j = initialY % meterScale; j <= canvasH; j += meterScale) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvasW, j); ctx.stroke(); }
+
+            const rulerX = 50;
+            ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(rulerX, initialY - 20); ctx.lineTo(rulerX, canvasH); ctx.stroke(); 
+
+            ctx.font = "bold 16px 'Fira Code', monospace"; 
+            ctx.textAlign = "right"; ctx.textBaseline = "middle";
+
+            for (let y = initialY; y <= canvasH; y += meterScale) {
+                let dist = Math.round((y - initialY) / meterScale);
+                let lineY = Math.floor(y) + 0.5; let textY = Math.floor(y);
+
+                ctx.beginPath(); ctx.moveTo(rulerX, lineY);
+                if (dist % 5 === 0) {
+                    ctx.lineTo(rulerX + 15, lineY); 
+                    ctx.shadowColor = "rgba(0, 0, 0, 0.9)"; ctx.shadowBlur = 5; ctx.shadowOffsetY = 1;
+
+                    if(dist === 0) { ctx.fillStyle = "#00f0ff"; ctx.fillText("0m", Math.floor(rulerX - 10), textY); }
+                    else { ctx.fillStyle = "#e2e8f0"; ctx.fillText(dist + "m", Math.floor(rulerX - 10), textY); }
+                    
+                    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+                } else {
+                    ctx.lineTo(rulerX + 8, lineY); 
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawCisim(obj, yPos, opacity = 1) {
+            ctx.save(); ctx.globalAlpha = opacity;
+            if (opacity === 1) { ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 8; }
+            drawTextures[obj.type](ctx, obj.x, yPos, obj.radius);
+            ctx.restore();
+        }
+
+        function addTableRow(t, d1, d2) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${t.toFixed(2)}</td>
+                             <td style="color: var(--primary); font-weight: bold;">${d1.toFixed(2)}</td>
+                             <td style="color: var(--accent); font-weight: bold;">${d2.toFixed(2)}</td>`;
+            tableBody.appendChild(row);
+            row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function drawScene() {
+            if(!canvasW) return;
+            ctx.clearRect(0, 0, canvasW, canvasH);
+            drawGridAndMeter();
+            
+            // İz Çizimleri (Geçmiş)
+            traces.forEach(trace => {
+                drawCisim(obj1, trace.y1, 0.25);
+                drawCisim(obj2, trace.y2, 0.25);
+            });
+
+            // Aktif Cisim Çizimleri
+            drawCisim(obj1, obj1.y, 1);
+            drawCisim(obj2, obj2.y, 1);
+        }
+
+        function update() {
+            if (!isRunning) return; 
+
+            const speedScale = parseFloat(selSpeed.value);
+            let currentDt = baseDt * speedScale;
+            
+            time = Number((time + currentDt).toFixed(4));
+            let currentVelocity = gravity * time;
+            let gravityDrop = 0.5 * gravity * Math.pow(time, 2); // Havada geçilen mesafe
+
+            // Sol Cisim Hesaplaması
+            if (!obj1.hitGround) {
+                let newDist = obj1.startDist + gravityDrop;
+                let newY = initialY + newDist * meterScale;
+                if (newY + obj1.radius >= canvasH - 5) {
+                    obj1.y = canvasH - 5 - obj1.radius;
+                    obj1.dist = (obj1.y - initialY) / meterScale;
+                    obj1.hitGround = true;
+                } else {
+                    obj1.y = newY; obj1.dist = newDist;
+                }
+            }
+
+            // Sağ Cisim Hesaplaması
+            if (!obj2.hitGround) {
+                let newDist = obj2.startDist + gravityDrop;
+                let newY = initialY + newDist * meterScale;
+                if (newY + obj2.radius >= canvasH - 5) {
+                    obj2.y = canvasH - 5 - obj2.radius;
+                    obj2.dist = (obj2.y - initialY) / meterScale;
+                    obj2.hitGround = true;
+                } else {
+                    obj2.y = newY; obj2.dist = newDist;
+                }
+            }
+
+            // Düzenli zaman aralıklarında (0.2s) tabloya ve ekrana iz kaydetme
+            if (time >= nextTraceTime && (!obj1.hitGround || !obj2.hitGround)) {
+                let exactDrop = 0.5 * gravity * Math.pow(nextTraceTime, 2);
+                
+                let d1 = obj1.hitGround ? obj1.dist : obj1.startDist + exactDrop;
+                let d2 = obj2.hitGround ? obj2.dist : obj2.startDist + exactDrop;
+                
+                let y1 = obj1.hitGround ? obj1.y : initialY + d1 * meterScale;
+                let y2 = obj2.hitGround ? obj2.y : initialY + d2 * meterScale;
+
+                traces.push({ y1, y2, time: nextTraceTime });
+                addTableRow(nextTraceTime, d1, d2);
+                
+                nextTraceTime = Number((nextTraceTime + traceInterval).toFixed(4));
+            }
+
+            // İki cisim de yere düştüyse simülasyonu sonlandır
+            if (obj1.hitGround && obj2.hitGround) {
+                traces.push({ y1: obj1.y, y2: obj2.y, time: time });
+                addTableRow(time, obj1.dist, obj2.dist);
+                drawScene();
+                updateUI(time, currentVelocity, obj1.dist, obj2.dist);
+                isRunning = false;
+                return;
+            }
+
+            drawScene();
+            updateUI(time, currentVelocity, obj1.dist, obj2.dist);
+            animationId = requestAnimationFrame(update);
+        }
+
+        function updateUI(t, v, d1, d2) {
+            document.getElementById('valTime').innerText = `${t.toFixed(2)} s`;
+            document.getElementById('valVel').innerText = `${v.toFixed(2)} m/s`;
+            document.getElementById('valDist1').innerText = `${d1.toFixed(2)} m`;
+            document.getElementById('valDist2').innerText = `${d2.toFixed(2)} m`;
+        }
+
+        function startSimulation() {
+            if (!isRunning) {
+                if (obj1.hitGround && obj2.hitGround) { resetSimulation(); }
+                isRunning = true; update();
+            }
+        }
+
+        function pauseSimulation() {
+            isRunning = false; cancelAnimationFrame(animationId);
+        }
+
+        function resetSimulation() {
+            isRunning = false; cancelAnimationFrame(animationId);
+            
+            // Cisimleri başlangıç sürgülerindeki değere göre sıfırla
+            obj1.hitGround = false; obj2.hitGround = false;
+            obj1.y = initialY + obj1.startDist * meterScale;
+            obj2.y = initialY + obj2.startDist * meterScale;
+            obj1.dist = obj1.startDist; obj2.dist = obj2.startDist;
+
+            time = 0; nextTraceTime = 0.2; traces = []; tableBody.innerHTML = ''; 
+            
+            traces.push({ y1: obj1.y, y2: obj2.y, time: 0 });
+            addTableRow(0, obj1.dist, obj2.dist); 
+            
+            updateUI(0, 0, obj1.dist, obj2.dist);
+            if(canvasW) drawScene();
+        }
+
+        // --- İLK KURULUM ---
+        window.addEventListener('resize', resizeCanvas);
+        obj1 = { ...ballLibrary[selObj1.value], x: 0, startDist: 0 }; 
+        obj2 = { ...ballLibrary[selObj2.value], x: 0, startDist: 0 };
+        
+        resizeCanvas();
+        changeBalls();
+    </script>
+</body>
+</html>
