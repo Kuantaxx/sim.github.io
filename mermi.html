@@ -34,6 +34,24 @@
             color: var(--text-main);
         }
 
+        /* YÖNERGE POPUP EKRANI */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 8, 14, 0.85); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 1; transition: opacity 0.3s;
+        }
+        .popup-overlay.hidden { opacity: 0; pointer-events: none; }
+        .popup-content {
+            background: var(--panel-bg); border: 2px solid var(--neon-blue);
+            border-radius: 16px; padding: 30px; max-width: 550px;
+            box-shadow: 0 10px 50px rgba(6, 182, 212, 0.2); color: var(--text-main);
+            text-align: left;
+        }
+        .popup-content h2 { margin-top: 0; color: var(--neon-blue); border-bottom: 1px solid rgba(6, 182, 212, 0.3); padding-bottom: 10px; }
+        .popup-content ul { padding-left: 20px; line-height: 1.6; color: #cbd5e1; font-size: 0.95rem; }
+        .popup-content li { margin-bottom: 10px; }
+        
         .main-wrapper {
             display: flex;
             gap: 25px;
@@ -122,11 +140,11 @@
         .probe-data-card::before { content: ''; position: absolute; left: -17px; top: 18px; width: 15px; height: 2px; background: var(--neon-yellow); }
         .probe-data-card strong { color: var(--text-main); font-family: monospace; font-size: 1rem; }
 
-        /* SAĞ KOLON */
+        /* SAĞ KOLON - DARALTILMIŞ YAPI */
         .right-column { 
             width: 350px; 
             height: 100%;
-            display: flex; flex-direction: column; gap: 15px; 
+            display: flex; flex-direction: column; gap: 12px; 
             flex-shrink: 0;
         }
 
@@ -134,8 +152,8 @@
             flex: 1;
             overflow-y: auto;
             background: var(--panel-bg); border: 1px solid var(--panel-border);
-            border-radius: 12px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
-            display: flex; flex-direction: column; gap: 18px;
+            border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; gap: 12px;
         }
         
         .control-panel::-webkit-scrollbar { width: 6px; }
@@ -144,14 +162,20 @@
         .control-panel::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.6); }
 
         .section-title {
-            font-size: 1rem; font-weight: 700; margin: 0; padding-bottom: 8px;
+            font-size: 1rem; font-weight: 700; margin: 0; padding-bottom: 6px;
             border-bottom: 1px solid rgba(6, 182, 212, 0.3); color: var(--neon-blue);
             text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
         }
 
-        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
         .input-header { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
         .input-header span { color: var(--neon-blue); font-family: monospace; font-size: 0.95rem; font-weight: bold; }
+
+        .styled-select {
+            background: #1e293b; color: var(--text-main); border: 1px solid rgba(6, 182, 212, 0.3);
+            padding: 6px; border-radius: 6px; outline: none; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+        }
+        .styled-select:focus { border-color: var(--neon-blue); }
 
         input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #1e293b; border-radius: 3px; outline: none; }
         input[type="range"]::-webkit-slider-thumb {
@@ -162,43 +186,58 @@
 
         .surtunme-box {
             display: flex; align-items: center; justify-content: space-between; background: #0b1120;
-            padding: 12px 15px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(6, 182, 212, 0.2); transition: all 0.2s;
+            padding: 10px 15px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(6, 182, 212, 0.2); transition: all 0.2s;
         }
         .surtunme-box:hover { border-color: var(--neon-blue); background: #111827; }
         .surtunme-box label { font-size: 0.85rem; font-weight: 700; cursor: pointer; }
         .surtunme-box input { transform: scale(1.4); cursor: pointer; accent-color: var(--neon-green); }
 
-        /* Kompakt Aksiyon Paneli */
+        /* Kompakt Aksiyon Paneli - DARALTILMIŞ BUTONLAR */
         .action-panel {
             background: var(--panel-bg); border: 1px solid var(--panel-border);
-            border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
-            display: flex; flex-direction: column; gap: 10px;
+            border-radius: 12px; padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; gap: 8px;
             flex-shrink: 0;
         }
         
         .btn-row {
-            display: flex; gap: 10px;
+            display: flex; gap: 8px;
         }
 
         .control-btn {
-            width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem;
+            width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 0.85rem;
             font-weight: 800; color: white; cursor: pointer; transition: transform 0.1s, filter 0.2s;
         }
         .control-btn:active { transform: scale(0.96); }
 
-        #fireBtn { background: var(--neon-green); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); font-size: 1rem; }
+        #fireBtn { background: var(--neon-green); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); font-size: 0.95rem; }
         #fireBtn:hover { filter: brightness(1.15); }
         #pauseBtn { background: #f57c00; }
         #pauseBtn:hover { filter: brightness(1.15); }
         #resetBtn { background: #475569; }
         #resetBtn:hover { filter: brightness(1.15); }
 
-        .flow-speed { display: flex; justify-content: center; gap: 15px; font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
+        .flow-speed { display: flex; justify-content: center; gap: 15px; font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
         .flow-speed label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
         .flow-speed input { accent-color: var(--neon-blue); transform: scale(1.2); }
     </style>
 </head>
 <body>
+
+    <div id="welcomePopup" class="popup-overlay">
+        <div class="popup-content">
+            <h2>Mermi Hareketi Simülasyonu 🎯</h2>
+            <p style="margin-bottom: 15px; font-weight: 600;">Laboratuvara hoş geldiniz! Atış yapmadan önce hızlıca kontrolleri inceleyelim:</p>
+            <ul>
+                <li>⚙️ Sağ taraftaki kontrol panelinden kütle, yerçekimi, hız ve hava sürtünmesi değişkenlerini ayarlayabilirsiniz.</li>
+                <li>↕️ Silahın sol tarafındaki <strong style="color:var(--neon-green)">yeşil ray sistemini</strong> aşağı-yukarı sürükleyerek fırlatma yüksekliğini belirleyebilirsiniz..</li>
+                <li>🔄 Silahın namlusuna tıklayıp sürükleyerek <strong style="color:var(--neon-blue)">atış açısını</strong> (-90° ile 90° arası) ayarlayabilirsiniz.</li>
+                <li>🏀 "Top Türü" seçtiğinizde kütlesi güncellenir. <strong style="color:var(--neon-yellow)">Kütleyi  değiştirdiğinizde ise topun boyutu dinamik olarak değişir.</strong> Boyut değişimi hava sürtünmesini fiziksel olarak etkiler!</li>
+                <li>📏 Atış yaptıktan sonra ekranın sağ üstündeki <strong style="color:var(--neon-yellow)">sarı probu</strong> yörünge çizgisine yaklaştırarak anlık değerleri okuyabilirsiniz.</li>
+            </ul>
+            <button id="closePopupBtn" class="control-btn" style="background:var(--neon-blue); margin-top:15px; font-size:1rem; padding:12px;">ANLADIM, SİMÜLASYONA BAŞLA</button>
+        </div>
+    </div>
 
     <div class="main-wrapper">
         <div class="left-column">
@@ -232,13 +271,23 @@
                 <h3 class="section-title">Değişkenler</h3>
                 
                 <div class="input-group">
+                    <div class="input-header"><label>Top Türü</label></div>
+                    <select id="ballType" class="styled-select">
+                        <option value="cannon">Gülle (Standart)</option>
+                        <option value="tennis">Tenis Topu</option>
+                        <option value="golf">Beyaz Golf Topu</option>
+                        <option value="basket">Turuncu Basketbol Topu</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
                     <div class="input-header"><label>Başlangıç Yüksekliği </label><span id="lbl-height">0.00 m</span></div>
                     <input type="range" id="height" min="0" max="25" value="0" step="1">
                 </div>
 
                 <div class="input-group">
                     <div class="input-header"><label>Mermi Kütlesi</label><span id="lbl-mass">17.60 kg</span></div>
-                    <input type="range" id="mass" min="1" max="31" value="17.60" step="0.1">
+                    <input type="range" id="mass" min="0.01" max="50" value="17.60" step="0.01">
                 </div>
 
                 <div class="input-group">
@@ -279,12 +328,19 @@
     </div>
 
     <script>
+        // Popup Yönetimi
+        const welcomePopup = document.getElementById('welcomePopup');
+        document.getElementById('closePopupBtn').addEventListener('click', () => {
+            welcomePopup.classList.add('hidden');
+        });
+
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
         const viewWrapper = document.getElementById('viewWrapper');
         const yAxisLabels = document.getElementById('yAxisLabels');
 
         const inputs = {
+            ballType: document.getElementById('ballType'),
             height: document.getElementById('height'), lblHeight: document.getElementById('lbl-height'),
             mass: document.getElementById('mass'), lblMass: document.getElementById('lbl-mass'),
             grav: document.getElementById('gravity'), lblGrav: document.getElementById('lbl-grav'),
@@ -296,6 +352,15 @@
         const huds = { t: document.getElementById('hud-t'), x: document.getElementById('hud-x'), ymax: document.getElementById('hud-ymax'), v: document.getElementById('hud-v') };
         const btns = { fire: document.getElementById('fireBtn'), pause: document.getElementById('pauseBtn'), reset: document.getElementById('resetBtn') };
         const probe = { tool: document.getElementById('probeTool'), handle: document.getElementById('probeHandle'), t: document.getElementById('pr-t'), x: document.getElementById('pr-x'), y: document.getElementById('pr-y') };
+
+        // Top Türleri Tanımlamaları
+        const ballConfigs = {
+            cannon: { m: 17.60, d: 0.18, color: "#f1f5f9", r: 8, shadow: "#3b82f6" },
+            tennis: { m: 0.058, d: 0.067, color: "#10b981", r: 5, shadow: "#059669" },
+            golf:   { m: 0.046, d: 0.043, color: "#ffffff", r: 4, shadow: "#cbd5e1" },
+            basket: { m: 0.620, d: 0.24, color: "#f97316", r: 10, shadow: "#c2410c" }
+        };
+        let currentBall = ballConfigs['cannon'];
 
         const scale = 18; 
         const axisX = 40; 
@@ -311,6 +376,13 @@
             probeX: 0, probeY: 50, snappedPoint: null,
             probeInitialized: false 
         };
+
+        inputs.ballType.addEventListener('change', (e) => {
+            currentBall = ballConfigs[e.target.value];
+            inputs.mass.value = currentBall.m; 
+            updateUI();
+            drawScene();
+        });
 
         function resizeCanvas() {
             canvas.width = viewWrapper.clientWidth;
@@ -348,7 +420,7 @@
 
         function updateUI() {
             inputs.lblHeight.innerText = inputs.height.value + ".00 m";
-            inputs.lblMass.innerText = inputs.mass.value + " kg";
+            inputs.lblMass.innerText = parseFloat(inputs.mass.value).toFixed(3) + " kg";
             inputs.lblGrav.innerText = parseFloat(inputs.grav.value).toFixed(2) + " m/s²";
             inputs.lblAngle.innerText = inputs.angle.value + "°";
             inputs.lblVel.innerText = inputs.vel.value + " m/s";
@@ -368,23 +440,19 @@
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Arka plan ızgarası
             ctx.strokeStyle = "rgba(6, 182, 212, 0.1)"; ctx.lineWidth = 1;
             for(let x = axisX; x < canvas.width; x += scale) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, groundY); ctx.stroke(); }
             for(let y = groundY; y > 0; y -= scale) { ctx.beginPath(); ctx.moveTo(axisX, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
-            // Yer zemini
             ctx.fillStyle = "#070c17"; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
             ctx.fillStyle = "rgba(6, 182, 212, 0.3)"; ctx.fillRect(0, groundY, canvas.width, 2);
 
-            // Eksen çizgileri
             ctx.strokeStyle = "rgba(6, 182, 212, 0.6)"; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(axisX, 0); ctx.lineTo(axisX, groundY); ctx.stroke();
             for(let y = groundY; y > 0; y -= scale * 5) {
                 ctx.beginPath(); ctx.moveTo(axisX - 5, y); ctx.lineTo(axisX + 5, y); ctx.stroke();
             }
 
-            // Geçmiş izler ve mevcut yörünge
             ctx.lineWidth = 2;
             state.paths.forEach(path => {
                 if(path.length > 1) {
@@ -402,7 +470,6 @@
                 ctx.stroke();
             }
 
-            // Ölçüm probu yörünge tutunma noktası
             if (state.snappedPoint) {
                 let px = originX + state.snappedPoint.x * scale;
                 let py = groundY - state.snappedPoint.y * scale;
@@ -416,45 +483,38 @@
                 ctx.fillStyle = "rgba(234, 179, 8, 0.3)"; ctx.fill();
             }
 
+            ctx.fillStyle = "#0f172a"; ctx.fillRect(originX - 25, groundY, 50, 12);
+            ctx.strokeStyle = "#334155"; ctx.lineWidth = 2; ctx.strokeRect(originX - 25, groundY, 50, 12);
+
             let currentH = parseFloat(inputs.height.value);
             let cannonY = groundY - (currentH * scale);
             
-            // --- YENİ EKLENEN: YÜKSELTİ ÇİZGİSİ (SLIDER) ---
             let maxHScale = 25 * scale;
-            let sliderX = originX - 60; // Silahın yanına yerleştirildi
+            let sliderX = originX - 60; 
             
-            // Slider Arka Planı (Kanal)
             ctx.fillStyle = "rgba(15, 23, 35, 0.8)";
             ctx.fillRect(sliderX - 3, groundY - maxHScale, 6, maxHScale);
             ctx.strokeStyle = "rgba(6, 182, 212, 0.3)";
             ctx.lineWidth = 1;
             ctx.strokeRect(sliderX - 3, groundY - maxHScale, 6, maxHScale);
             
-            // Slider Aktif Dolgu
             if (currentH > 0) {
                 ctx.fillStyle = "rgba(16, 185, 129, 0.4)";
                 ctx.fillRect(sliderX - 3, cannonY, 6, currentH * scale);
             }
 
-            // Slider Tutamaçları
-            ctx.fillStyle = "#10b981"; // Neon yeşil
+            ctx.fillStyle = "#10b981"; 
             ctx.beginPath(); ctx.moveTo(sliderX - 3, cannonY); ctx.lineTo(sliderX - 12, cannonY - 8); ctx.lineTo(sliderX - 12, cannonY + 8); ctx.fill();
             ctx.beginPath(); ctx.moveTo(sliderX + 3, cannonY); ctx.lineTo(sliderX + 12, cannonY - 8); ctx.lineTo(sliderX + 12, cannonY + 8); ctx.fill();
 
-            // Silaha bağlanan kılavuz çizgisi
             ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
             ctx.setLineDash([4, 4]);
             ctx.beginPath(); ctx.moveTo(sliderX + 12, cannonY); ctx.lineTo(originX - 18, cannonY); ctx.stroke();
             ctx.setLineDash([]);
             
-            // 'h' harfi
-            ctx.fillStyle = "#94a3b8";
-            ctx.font = "bold 12px monospace";
-            ctx.textAlign = "center";
+            ctx.fillStyle = "#94a3b8"; ctx.font = "bold 12px monospace"; ctx.textAlign = "center";
             ctx.fillText("h", sliderX, groundY + 16);
-            // ----------------------------------------------
 
-            // Silahın Yükseltici Gövdesi (Stand)
             if (currentH > 0) {
                 ctx.fillStyle = "#1e293b"; ctx.fillRect(originX - 18, cannonY, 36, currentH * scale);
                 ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.strokeRect(originX - 18, cannonY, 36, currentH * scale);
@@ -462,14 +522,12 @@
 
             let ang = parseFloat(inputs.angle.value) * Math.PI / 180;
             
-            // Açı yayı
             ctx.beginPath();
             ctx.arc(originX, cannonY, 35, 0, -ang, ang >= 0);
             ctx.strokeStyle = "rgba(6, 182, 212, 0.6)";
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Açı kılavuzu
             ctx.beginPath();
             ctx.moveTo(originX, cannonY);
             ctx.lineTo(originX + 45, cannonY);
@@ -478,7 +536,6 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Açı metni
             ctx.fillStyle = "#06b6d4"; 
             ctx.font = "bold 13px monospace"; 
             ctx.textAlign = "left";
@@ -486,24 +543,33 @@
             let textY = cannonY + 40 * Math.sin(-ang / 2) + 4;
             ctx.fillText(inputs.angle.value + "°", textX, textY);
 
-            // Silah Namlusu
             ctx.save(); ctx.translate(originX, cannonY); ctx.rotate(-ang);
             ctx.fillStyle = "#475569"; ctx.fillRect(0, -12, 55, 24); 
             ctx.fillStyle = "#3b82f6"; ctx.fillRect(50, -14, 6, 28); 
             ctx.restore();
 
-            // Pivot noktası
             ctx.beginPath(); ctx.arc(originX, cannonY, 15, 0, Math.PI * 2);
             ctx.fillStyle = "#05080e"; ctx.fill(); ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.stroke();
 
-            // Top Mermisi
             if (state.isRunning) {
                 let px = originX + state.ball.mx * scale;
                 let py = groundY - state.ball.my * scale;
-                let r = 8; 
+                
+                // Dinamik Hacim Hesaplama (Küpkök oranında boyut artışı)
+                let currentMass = parseFloat(inputs.mass.value);
+                let volumeScale = Math.pow(currentMass / currentBall.m, 1/3);
+                let r = Math.max(3, Math.min(currentBall.r * volumeScale, 35)); // Minimum 3, Maksimum 35px ile sınırlandı
+                
                 ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
-                ctx.fillStyle = "#f1f5f9"; ctx.fill();
-                ctx.shadowBlur = 15; ctx.shadowColor = "#3b82f6"; ctx.fill(); ctx.shadowBlur = 0;
+                ctx.fillStyle = currentBall.color; ctx.fill();
+                
+                if(inputs.ballType.value === 'basket') {
+                    ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(px-r, py); ctx.lineTo(px+r, py); ctx.stroke();
+                }
+
+                ctx.shadowBlur = 15; ctx.shadowColor = currentBall.shadow; ctx.fill(); ctx.shadowBlur = 0;
             }
         }
 
@@ -538,7 +604,26 @@
             drawScene();
         }
 
-        // Tıklama ve Sürükleme Mantığı
+        function calculateDragAngle(mx, my) {
+            let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
+            let dx = mx - originX;
+            let dy = cannonY - my;
+            
+            let deg;
+            if (dx < 0) {
+                deg = dy > 0 ? 90 : -90;
+            } else {
+                let ang = Math.atan2(dy, dx);
+                deg = Math.round(ang * 180 / Math.PI);
+            }
+            
+            deg = Math.max(-90, Math.min(90, deg));
+            
+            inputs.angle.value = deg; 
+            updateUI(); 
+            drawScene();
+        }
+
         canvas.addEventListener('mousedown', (e) => {
             let r = canvas.getBoundingClientRect();
             let mx = e.clientX - r.left; 
@@ -548,14 +633,12 @@
             let distToPivot = Math.hypot(mx - originX, my - cannonY);
             let sliderX = originX - 60;
 
-            // 1. Namlu/Pivot kontrolü (Açı ayarı için)
             if(distToPivot < 45) { 
                 state.dragGun = true; 
-                calcAngle(e); 
+                calculateDragAngle(mx, my); 
                 return;
             }
 
-            // 2. Özel Yükseklik Çizgisi (Slider) kontrolü
             if (mx > sliderX - 25 && mx < sliderX + 25 && my > groundY - (25 * scale) - 20 && my < groundY + 20) {
                 state.dragHeight = true;
                 return;
@@ -567,10 +650,7 @@
             let mx = e.clientX - r.left; let my = e.clientY - r.top;
 
             if (state.dragGun) {
-                let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
-                let ang = Math.atan2(cannonY - my, mx - originX);
-                let deg = Math.round(ang * 180 / Math.PI);
-                if (deg >= -90 && deg <= 90) { inputs.angle.value = deg; updateUI(); drawScene(); }
+                calculateDragAngle(mx, my);
             } 
             else if (state.dragHeight) {
                 let newH = (groundY - my) / scale;
@@ -595,7 +675,6 @@
             state.dragProbe = false; 
         });
 
-        // Hover Efektleri (Cursor)
         canvas.addEventListener('mousemove', (e) => {
             if (state.dragGun || state.dragHeight || state.dragProbe) return;
 
@@ -607,21 +686,13 @@
             let sliderX = originX - 60;
 
             if (distToPivot < 45) {
-                canvas.style.cursor = 'grab'; // Döndürme/Açı
+                canvas.style.cursor = 'grab';
             } else if (mx > sliderX - 25 && mx < sliderX + 25 && my > groundY - (25 * scale) - 20 && my < groundY + 20) {
-                canvas.style.cursor = 'ns-resize'; // Yükseklik Slider'ı
+                canvas.style.cursor = 'ns-resize';
             } else {
                 canvas.style.cursor = 'crosshair';
             }
         });
-
-        function calcAngle(e) {
-            let r = canvas.getBoundingClientRect();
-            let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
-            let ang = Math.atan2(cannonY - (e.clientY - r.top), (e.clientX - r.left) - originX);
-            let deg = Math.round(ang * 180 / Math.PI);
-            if (deg >= -90 && deg <= 90) { inputs.angle.value = deg; updateUI(); drawScene(); }
-        }
 
         function simPhysicsEngine(time) {
             if (!state.isRunning || state.isPaused) { state.lastTime = time; requestAnimationFrame(simPhysicsEngine); return; }
@@ -635,8 +706,13 @@
             let speedMod = parseFloat(document.querySelector('input[name="simSpeed"]:checked').value);
             let dt = frameDt * speedMod;
 
-            let g = parseFloat(inputs.grav.value); let m = parseFloat(inputs.mass.value); 
-            let d = 0.18; 
+            let g = parseFloat(inputs.grav.value); 
+            let m = parseFloat(inputs.mass.value); 
+            
+            // Aerodinamik yüzey alanının hacme/kütleye göre ölçeklenmesi
+            let volumeScale = Math.pow(m / currentBall.m, 1/3);
+            let d = currentBall.d * volumeScale; 
+            
             let activeDrag = inputs.drag.checked;
             let subSteps = 50; let subDt = dt / subSteps;
 
@@ -738,7 +814,7 @@
             btns.pause.innerText = "DURAKLAT"; updateUI(); drawScene();
         });
 
-        Object.values(inputs).forEach(el => { if(el.tagName === 'INPUT') el.addEventListener('input', () => { updateUI(); drawScene(); }); });
+        Object.values(inputs).forEach(el => { if(el && el.tagName === 'INPUT') el.addEventListener('input', () => { updateUI(); drawScene(); }); });
         inputs.drag.addEventListener('change', updateUI);
 
         resizeCanvas();
