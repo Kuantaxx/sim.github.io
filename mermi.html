@@ -307,8 +307,9 @@
             t: 0, lastTime: 0, maxDeltaY: 0, initialH: 0, initialV: 0,
             paths: [], currentPath: [], 
             ball: { mx: 0, my: 0, vx: 0, vy: 0 },
-            dragGun: false, dragProbe: false,
-            probeX: 50, probeY: 50, snappedPoint: null
+            dragGun: false, dragHeight: false, dragProbe: false,
+            probeX: 0, probeY: 50, snappedPoint: null,
+            probeInitialized: false 
         };
 
         function resizeCanvas() {
@@ -316,8 +317,14 @@
             canvas.height = viewWrapper.clientHeight;
             groundY = canvas.height - 50;
             
-            if (state.probeX > canvas.width - 200) state.probeX = canvas.width - 250;
+            if (!state.probeInitialized) {
+                state.probeX = canvas.width - 220;
+                state.probeInitialized = true;
+            }
+
+            if (state.probeX > canvas.width - 200) state.probeX = canvas.width - 220;
             if (state.probeY > canvas.height - 100) state.probeY = 50;
+            
             probe.tool.style.left = state.probeX + 'px';
             probe.tool.style.top = state.probeY + 'px';
 
@@ -361,19 +368,23 @@
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Arka plan ızgarası
             ctx.strokeStyle = "rgba(6, 182, 212, 0.1)"; ctx.lineWidth = 1;
             for(let x = axisX; x < canvas.width; x += scale) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, groundY); ctx.stroke(); }
             for(let y = groundY; y > 0; y -= scale) { ctx.beginPath(); ctx.moveTo(axisX, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
+            // Yer zemini
             ctx.fillStyle = "#070c17"; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
             ctx.fillStyle = "rgba(6, 182, 212, 0.3)"; ctx.fillRect(0, groundY, canvas.width, 2);
 
+            // Eksen çizgileri
             ctx.strokeStyle = "rgba(6, 182, 212, 0.6)"; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(axisX, 0); ctx.lineTo(axisX, groundY); ctx.stroke();
             for(let y = groundY; y > 0; y -= scale * 5) {
                 ctx.beginPath(); ctx.moveTo(axisX - 5, y); ctx.lineTo(axisX + 5, y); ctx.stroke();
             }
 
+            // Geçmiş izler ve mevcut yörünge
             ctx.lineWidth = 2;
             state.paths.forEach(path => {
                 if(path.length > 1) {
@@ -391,6 +402,7 @@
                 ctx.stroke();
             }
 
+            // Ölçüm probu yörünge tutunma noktası
             if (state.snappedPoint) {
                 let px = originX + state.snappedPoint.x * scale;
                 let py = groundY - state.snappedPoint.y * scale;
@@ -407,6 +419,42 @@
             let currentH = parseFloat(inputs.height.value);
             let cannonY = groundY - (currentH * scale);
             
+            // --- YENİ EKLENEN: YÜKSELTİ ÇİZGİSİ (SLIDER) ---
+            let maxHScale = 25 * scale;
+            let sliderX = originX - 60; // Silahın yanına yerleştirildi
+            
+            // Slider Arka Planı (Kanal)
+            ctx.fillStyle = "rgba(15, 23, 35, 0.8)";
+            ctx.fillRect(sliderX - 3, groundY - maxHScale, 6, maxHScale);
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.3)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(sliderX - 3, groundY - maxHScale, 6, maxHScale);
+            
+            // Slider Aktif Dolgu
+            if (currentH > 0) {
+                ctx.fillStyle = "rgba(16, 185, 129, 0.4)";
+                ctx.fillRect(sliderX - 3, cannonY, 6, currentH * scale);
+            }
+
+            // Slider Tutamaçları
+            ctx.fillStyle = "#10b981"; // Neon yeşil
+            ctx.beginPath(); ctx.moveTo(sliderX - 3, cannonY); ctx.lineTo(sliderX - 12, cannonY - 8); ctx.lineTo(sliderX - 12, cannonY + 8); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sliderX + 3, cannonY); ctx.lineTo(sliderX + 12, cannonY - 8); ctx.lineTo(sliderX + 12, cannonY + 8); ctx.fill();
+
+            // Silaha bağlanan kılavuz çizgisi
+            ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(sliderX + 12, cannonY); ctx.lineTo(originX - 18, cannonY); ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 'h' harfi
+            ctx.fillStyle = "#94a3b8";
+            ctx.font = "bold 12px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("h", sliderX, groundY + 16);
+            // ----------------------------------------------
+
+            // Silahın Yükseltici Gövdesi (Stand)
             if (currentH > 0) {
                 ctx.fillStyle = "#1e293b"; ctx.fillRect(originX - 18, cannonY, 36, currentH * scale);
                 ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.strokeRect(originX - 18, cannonY, 36, currentH * scale);
@@ -414,13 +462,14 @@
 
             let ang = parseFloat(inputs.angle.value) * Math.PI / 180;
             
-            // Açı yayını (arc) pozitif/negatif yönelimine göre düzgün çizer
+            // Açı yayı
             ctx.beginPath();
             ctx.arc(originX, cannonY, 35, 0, -ang, ang >= 0);
             ctx.strokeStyle = "rgba(6, 182, 212, 0.6)";
             ctx.lineWidth = 2;
             ctx.stroke();
 
+            // Açı kılavuzu
             ctx.beginPath();
             ctx.moveTo(originX, cannonY);
             ctx.lineTo(originX + 45, cannonY);
@@ -429,6 +478,7 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
+            // Açı metni
             ctx.fillStyle = "#06b6d4"; 
             ctx.font = "bold 13px monospace"; 
             ctx.textAlign = "left";
@@ -436,14 +486,17 @@
             let textY = cannonY + 40 * Math.sin(-ang / 2) + 4;
             ctx.fillText(inputs.angle.value + "°", textX, textY);
 
+            // Silah Namlusu
             ctx.save(); ctx.translate(originX, cannonY); ctx.rotate(-ang);
             ctx.fillStyle = "#475569"; ctx.fillRect(0, -12, 55, 24); 
             ctx.fillStyle = "#3b82f6"; ctx.fillRect(50, -14, 6, 28); 
             ctx.restore();
 
+            // Pivot noktası
             ctx.beginPath(); ctx.arc(originX, cannonY, 15, 0, Math.PI * 2);
             ctx.fillStyle = "#05080e"; ctx.fill(); ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.stroke();
 
+            // Top Mermisi
             if (state.isRunning) {
                 let px = originX + state.ball.mx * scale;
                 let py = groundY - state.ball.my * scale;
@@ -485,11 +538,28 @@
             drawScene();
         }
 
+        // Tıklama ve Sürükleme Mantığı
         canvas.addEventListener('mousedown', (e) => {
             let r = canvas.getBoundingClientRect();
+            let mx = e.clientX - r.left; 
+            let my = e.clientY - r.top;
             let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
-            let dist = Math.hypot((e.clientX - r.left) - originX, (e.clientY - r.top) - cannonY);
-            if(dist < 85) { state.dragGun = true; calcAngle(e); }
+            
+            let distToPivot = Math.hypot(mx - originX, my - cannonY);
+            let sliderX = originX - 60;
+
+            // 1. Namlu/Pivot kontrolü (Açı ayarı için)
+            if(distToPivot < 45) { 
+                state.dragGun = true; 
+                calcAngle(e); 
+                return;
+            }
+
+            // 2. Özel Yükseklik Çizgisi (Slider) kontrolü
+            if (mx > sliderX - 25 && mx < sliderX + 25 && my > groundY - (25 * scale) - 20 && my < groundY + 20) {
+                state.dragHeight = true;
+                return;
+            }
         });
 
         window.addEventListener('mousemove', (e) => { 
@@ -500,8 +570,14 @@
                 let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
                 let ang = Math.atan2(cannonY - my, mx - originX);
                 let deg = Math.round(ang * 180 / Math.PI);
-                // Mouse ile drag işleminde -90 ile 90 arası izin veriyoruz
                 if (deg >= -90 && deg <= 90) { inputs.angle.value = deg; updateUI(); drawScene(); }
+            } 
+            else if (state.dragHeight) {
+                let newH = (groundY - my) / scale;
+                if (newH < 0) newH = 0;
+                if (newH > 25) newH = 25; 
+                inputs.height.value = Math.round(newH);
+                updateUI(); drawScene();
             }
             
             if (state.dragProbe) {
@@ -513,14 +589,37 @@
             }
         });
 
-        window.addEventListener('mouseup', () => { state.dragGun = false; state.dragProbe = false; });
+        window.addEventListener('mouseup', () => { 
+            state.dragGun = false; 
+            state.dragHeight = false; 
+            state.dragProbe = false; 
+        });
+
+        // Hover Efektleri (Cursor)
+        canvas.addEventListener('mousemove', (e) => {
+            if (state.dragGun || state.dragHeight || state.dragProbe) return;
+
+            let r = canvas.getBoundingClientRect();
+            let mx = e.clientX - r.left; let my = e.clientY - r.top;
+            let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
+            
+            let distToPivot = Math.hypot(mx - originX, my - cannonY);
+            let sliderX = originX - 60;
+
+            if (distToPivot < 45) {
+                canvas.style.cursor = 'grab'; // Döndürme/Açı
+            } else if (mx > sliderX - 25 && mx < sliderX + 25 && my > groundY - (25 * scale) - 20 && my < groundY + 20) {
+                canvas.style.cursor = 'ns-resize'; // Yükseklik Slider'ı
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+        });
 
         function calcAngle(e) {
             let r = canvas.getBoundingClientRect();
             let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
             let ang = Math.atan2(cannonY - (e.clientY - r.top), (e.clientX - r.left) - originX);
             let deg = Math.round(ang * 180 / Math.PI);
-            // Manuel tıklama ve hesaplama sırasında limit kontrolü
             if (deg >= -90 && deg <= 90) { inputs.angle.value = deg; updateUI(); drawScene(); }
         }
 
@@ -612,7 +711,6 @@
             state.maxDeltaY = h0;
             
             state.ball.mx = 0; state.ball.my = h0;
-            // İlk hız sıfır olsa da formüller bunu x:0, y:0 olarak başlatacak. Motor yerçekiminden dolayı düşüşü başlatacak.
             state.ball.vx = initialV0 * Math.cos(angRad); state.ball.vy = initialV0 * Math.sin(angRad);
 
             huds.v.style.color = "#f1f5f9";
@@ -632,7 +730,9 @@
             huds.t.innerText = "0.00 s"; huds.x.innerText = "0.00 m"; huds.ymax.innerText = "0.00 m"; huds.v.style.color = "#f1f5f9";
             
             probe.t.innerText = "-- s"; probe.x.innerText = "-- m"; probe.y.innerText = "-- m";
-            state.probeX = canvas.width / 2; state.probeY = 50;
+            
+            state.probeX = canvas.width - 220; 
+            state.probeY = 50;
             probe.tool.style.top = state.probeY + "px"; probe.tool.style.left = state.probeX + "px";
 
             btns.pause.innerText = "DURAKLAT"; updateUI(); drawScene();
