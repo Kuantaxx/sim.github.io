@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermi Hareketi</title>
+    <style>
+        :root {
+            --bg-dark: #05080e; 
+            --panel-bg: rgba(15, 23, 35, 0.9); 
+            --panel-border: rgba(6, 182, 212, 0.3); 
+            --neon-green: #10b981; 
+            --neon-blue: #06b6d4; 
+            --neon-pink: #ec4899; 
+            --neon-yellow: #eab308; 
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --canvas-bg: #0b1120;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 30%, #172a45, #05080e);
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-main);
+        }
+
+        .main-wrapper {
+            display: flex;
+            gap: 25px;
+            width: 100%;
+            height: 100%;
+            max-width: 1600px;
+        }
+
+        /* SOL KOLON */
+        .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: 100%;
+            min-width: 0;
+        }
+
+        .hud-display {
+            display: flex;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 15px 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7), 0 0 20px rgba(6, 182, 212, 0.1);
+            flex-shrink: 0;
+        }
+
+        .hud-box { display: flex; flex-direction: column; }
+        .hud-box label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px; margin-bottom: 5px; }
+        .hud-box span { font-family: 'Courier New', monospace; font-size: 1.8rem; font-weight: bold; color: var(--neon-green); text-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+
+        .viewport-wrapper {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.7), 0 0 20px rgba(6, 182, 212, 0.1);
+        }
+
+        #simCanvas {
+            background-color: var(--canvas-bg);
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .y-axis-labels {
+            position: absolute; left: 0; top: 0; bottom: 0; width: 40px;
+            pointer-events: none;
+        }
+        .y-label { 
+            position: absolute; right: 5px; 
+            font-size: 0.8rem; font-weight: 700; color: rgba(6, 182, 212, 0.8); font-family: monospace; 
+        }
+
+        /* Prob */
+        .probe-container {
+            position: absolute; top: 40px; left: 50%;
+            display: flex; align-items: flex-start; gap: 15px;
+            z-index: 10;
+        }
+        .probe-sensor {
+            width: 44px; height: 44px;
+            border: 3px solid var(--neon-yellow); border-radius: 50%;
+            background: rgba(234, 179, 8, 0.15);
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.4), inset 0 0 10px rgba(234, 179, 8, 0.3);
+            position: relative; cursor: move; transition: transform 0.1s;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .probe-sensor:hover { transform: scale(1.1); background: rgba(234, 179, 8, 0.3); }
+        .probe-sensor::before { content: ''; position: absolute; width: 2px; height: 20px; background: var(--neon-yellow); }
+        .probe-sensor::after { content: ''; position: absolute; width: 20px; height: 2px; background: var(--neon-yellow); }
+        .probe-dot { width: 6px; height: 6px; background: var(--neon-yellow); border-radius: 50%; position: absolute; z-index: 2; }
+
+        .probe-data-card {
+            background: rgba(10, 15, 30, 0.95); border: 2px solid var(--neon-yellow);
+            padding: 10px 15px; border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; font-size: 0.85rem; color: #cbd5e1; line-height: 1.5; position: relative;
+        }
+        .probe-data-card::before { content: ''; position: absolute; left: -17px; top: 18px; width: 15px; height: 2px; background: var(--neon-yellow); }
+        .probe-data-card strong { color: var(--text-main); font-family: monospace; font-size: 1rem; }
+
+        /* SAĞ KOLON */
+        .right-column { 
+            width: 350px; 
+            height: 100%;
+            display: flex; flex-direction: column; gap: 15px; 
+            flex-shrink: 0;
+        }
+
+        .control-panel {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 12px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; gap: 18px;
+        }
+        
+        .control-panel::-webkit-scrollbar { width: 6px; }
+        .control-panel::-webkit-scrollbar-track { background: transparent; }
+        .control-panel::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 10px; }
+        .control-panel::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.6); }
+
+        .section-title {
+            font-size: 1rem; font-weight: 700; margin: 0; padding-bottom: 8px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.3); color: var(--neon-blue);
+            text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-header { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        .input-header span { color: var(--neon-blue); font-family: monospace; font-size: 0.95rem; font-weight: bold; }
+
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #1e293b; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); cursor: pointer; transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+        .surtunme-box {
+            display: flex; align-items: center; justify-content: space-between; background: #0b1120;
+            padding: 12px 15px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(6, 182, 212, 0.2); transition: all 0.2s;
+        }
+        .surtunme-box:hover { border-color: var(--neon-blue); background: #111827; }
+        .surtunme-box label { font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+        .surtunme-box input { transform: scale(1.4); cursor: pointer; accent-color: var(--neon-green); }
+
+        /* Kompakt Aksiyon Paneli */
+        .action-panel {
+            background: var(--panel-bg); border: 1px solid var(--panel-border);
+            border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; gap: 10px;
+            flex-shrink: 0;
+        }
+        
+        .btn-row {
+            display: flex; gap: 10px;
+        }
+
+        .control-btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem;
+            font-weight: 800; color: white; cursor: pointer; transition: transform 0.1s, filter 0.2s;
+        }
+        .control-btn:active { transform: scale(0.96); }
+
+        #fireBtn { background: var(--neon-green); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); font-size: 1rem; }
+        #fireBtn:hover { filter: brightness(1.15); }
+        #pauseBtn { background: #f57c00; }
+        #pauseBtn:hover { filter: brightness(1.15); }
+        #resetBtn { background: #475569; }
+        #resetBtn:hover { filter: brightness(1.15); }
+
+        .flow-speed { display: flex; justify-content: center; gap: 15px; font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
+        .flow-speed label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .flow-speed input { accent-color: var(--neon-blue); transform: scale(1.2); }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="left-column">
+            <div class="hud-display">
+                <div class="hud-box"><label>Uçuş Süresi (t)</label><span id="hud-t">0.00 s</span></div>
+                <div class="hud-box"><label>Yatay Menzil (x)</label><span id="hud-x">0.00 m</span></div>
+                <div class="hud-box"><label>Maks. Yükseklik</label><span id="hud-ymax">0.00 m</span></div>
+                <div class="hud-box"><label>Anlık Hız (v)</label><span id="hud-v" style="color:var(--text-main); text-shadow:none;">0.00 m/s</span></div>
+            </div>
+
+            <div class="viewport-wrapper" id="viewWrapper">
+                <canvas id="simCanvas"></canvas>
+                
+                <div class="y-axis-labels" id="yAxisLabels"></div>
+
+                <div id="probeTool" class="probe-container">
+                    <div class="probe-sensor" id="probeHandle" title="Yörünge üzerine sürükleyin">
+                        <div class="probe-dot"></div>
+                    </div>
+                    <div class="probe-data-card">
+                        <div>Zaman : <strong id="pr-t">-- s</strong></div>
+                        <div>Menzil : <strong id="pr-x">-- m</strong></div>
+                        <div>Yüks. &nbsp;: <strong id="pr-y">-- m</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="control-panel">
+                <h3 class="section-title">Değişkenler</h3>
+                
+                <div class="input-group">
+                    <div class="input-header"><label>Başlangıç Yüksekliği </label><span id="lbl-height">0.00 m</span></div>
+                    <input type="range" id="height" min="0" max="25" value="0" step="1">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-header"><label>Mermi Kütlesi</label><span id="lbl-mass">17.60 kg</span></div>
+                    <input type="range" id="mass" min="1" max="31" value="17.60" step="0.1">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-header"><label>Yerçekimi İvmesi </label><span id="lbl-grav">10.00 m/s²</span></div>
+                    <input type="range" id="gravity" min="1" max="20" value="10" step="0.1">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-header"><label>Fırlatma Açısı</label><span id="lbl-angle">80°</span></div>
+                    <input type="range" id="angle" min="-90" max="90" value="80" step="1">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-header"><label>Başlangıç Hızı </label><span id="lbl-vel">18 m/s</span></div>
+                    <input type="range" id="velocity" min="0" max="45" value="18" step="1">
+                </div>
+
+                <label class="surtunme-box">
+                    <span id="surtunmeText" style="font-size:0.85rem; font-weight:700;">Hava Sürtünmesi Kapalı</span>
+                    <input type="checkbox" id="airResist">
+                </label>
+            </div>
+
+            <div class="action-panel">
+                <button class="control-btn" id="fireBtn">ATEŞ ET </button>
+                
+                <div class="btn-row">
+                    <button class="control-btn" id="pauseBtn" style="flex:1;">DURAKLAT</button>
+                    <button class="control-btn" id="resetBtn" style="flex:1;">SIFIRLA</button>
+                </div>
+
+                <div class="flow-speed">
+                    <label><input type="radio" name="simSpeed" value="1" checked> Normal Hız</label>
+                    <label><input type="radio" name="simSpeed" value="0.25"> Yavaş Çekim</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const viewWrapper = document.getElementById('viewWrapper');
+        const yAxisLabels = document.getElementById('yAxisLabels');
+
+        const inputs = {
+            height: document.getElementById('height'), lblHeight: document.getElementById('lbl-height'),
+            mass: document.getElementById('mass'), lblMass: document.getElementById('lbl-mass'),
+            grav: document.getElementById('gravity'), lblGrav: document.getElementById('lbl-grav'),
+            angle: document.getElementById('angle'), lblAngle: document.getElementById('lbl-angle'),
+            vel: document.getElementById('velocity'), lblVel: document.getElementById('lbl-vel'),
+            drag: document.getElementById('airResist'), dragText: document.getElementById('surtunmeText')
+        };
+
+        const huds = { t: document.getElementById('hud-t'), x: document.getElementById('hud-x'), ymax: document.getElementById('hud-ymax'), v: document.getElementById('hud-v') };
+        const btns = { fire: document.getElementById('fireBtn'), pause: document.getElementById('pauseBtn'), reset: document.getElementById('resetBtn') };
+        const probe = { tool: document.getElementById('probeTool'), handle: document.getElementById('probeHandle'), t: document.getElementById('pr-t'), x: document.getElementById('pr-x'), y: document.getElementById('pr-y') };
+
+        const scale = 18; 
+        const axisX = 40; 
+        const originX = 140; 
+        let groundY = 0; 
+
+        let state = {
+            isRunning: false, isPaused: false,
+            t: 0, lastTime: 0, maxDeltaY: 0, initialH: 0, initialV: 0,
+            paths: [], currentPath: [], 
+            ball: { mx: 0, my: 0, vx: 0, vy: 0 },
+            dragGun: false, dragHeight: false, dragProbe: false,
+            probeX: 0, probeY: 50, snappedPoint: null,
+            probeInitialized: false 
+        };
+
+        function resizeCanvas() {
+            canvas.width = viewWrapper.clientWidth;
+            canvas.height = viewWrapper.clientHeight;
+            groundY = canvas.height - 50;
+            
+            if (!state.probeInitialized) {
+                state.probeX = canvas.width - 220;
+                state.probeInitialized = true;
+            }
+
+            if (state.probeX > canvas.width - 200) state.probeX = canvas.width - 220;
+            if (state.probeY > canvas.height - 100) state.probeY = 50;
+            
+            probe.tool.style.left = state.probeX + 'px';
+            probe.tool.style.top = state.probeY + 'px';
+
+            generateYLabels();
+            drawScene();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function generateYLabels() {
+            yAxisLabels.innerHTML = '';
+            let maxY = Math.floor(groundY / scale);
+            for(let i=0; i <= maxY; i += 5) { 
+                let label = document.createElement('div');
+                label.className = 'y-label';
+                label.innerText = i + 'm';
+                label.style.bottom = (canvas.height - groundY + (i * scale) - 8) + 'px'; 
+                yAxisLabels.appendChild(label);
+            }
+        }
+
+        function updateUI() {
+            inputs.lblHeight.innerText = inputs.height.value + ".00 m";
+            inputs.lblMass.innerText = inputs.mass.value + " kg";
+            inputs.lblGrav.innerText = parseFloat(inputs.grav.value).toFixed(2) + " m/s²";
+            inputs.lblAngle.innerText = inputs.angle.value + "°";
+            inputs.lblVel.innerText = inputs.vel.value + " m/s";
+
+            if(inputs.drag.checked) {
+                inputs.dragText.innerText = "Hava Sürtünmesi Aktif"; inputs.dragText.style.color = "#10b981";
+            } else {
+                inputs.dragText.innerText = "Hava Sürtünmesi Kapalı"; inputs.dragText.style.color = "#94a3b8";
+            }
+
+            if (!state.isRunning && !state.isPaused) {
+                huds.v.innerText = parseFloat(inputs.vel.value).toFixed(2) + " m/s";
+                huds.v.style.color = "#f1f5f9";
+            }
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Arka plan ızgarası
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.1)"; ctx.lineWidth = 1;
+            for(let x = axisX; x < canvas.width; x += scale) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, groundY); ctx.stroke(); }
+            for(let y = groundY; y > 0; y -= scale) { ctx.beginPath(); ctx.moveTo(axisX, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+            // Yer zemini
+            ctx.fillStyle = "#070c17"; ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            ctx.fillStyle = "rgba(6, 182, 212, 0.3)"; ctx.fillRect(0, groundY, canvas.width, 2);
+
+            // Eksen çizgileri
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.6)"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(axisX, 0); ctx.lineTo(axisX, groundY); ctx.stroke();
+            for(let y = groundY; y > 0; y -= scale * 5) {
+                ctx.beginPath(); ctx.moveTo(axisX - 5, y); ctx.lineTo(axisX + 5, y); ctx.stroke();
+            }
+
+            // Geçmiş izler ve mevcut yörünge
+            ctx.lineWidth = 2;
+            state.paths.forEach(path => {
+                if(path.length > 1) {
+                    ctx.strokeStyle = "rgba(100, 116, 139, 0.5)";
+                    ctx.beginPath(); ctx.moveTo(originX + path[0].x * scale, groundY - path[0].y * scale);
+                    for(let i=1; i<path.length; i++) ctx.lineTo(originX + path[i].x * scale, groundY - path[i].y * scale);
+                    ctx.stroke();
+                }
+            });
+
+            if(state.currentPath.length > 1) {
+                ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(originX + state.currentPath[0].x * scale, groundY - state.currentPath[0].y * scale);
+                for(let i=1; i<state.currentPath.length; i++) ctx.lineTo(originX + state.currentPath[i].x * scale, groundY - state.currentPath[i].y * scale);
+                ctx.stroke();
+            }
+
+            // Ölçüm probu yörünge tutunma noktası
+            if (state.snappedPoint) {
+                let px = originX + state.snappedPoint.x * scale;
+                let py = groundY - state.snappedPoint.y * scale;
+                ctx.strokeStyle = "rgba(234, 179, 8, 0.4)"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+                ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, groundY); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(axisX, py); ctx.lineTo(px, py); ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2);
+                ctx.strokeStyle = "#eab308"; ctx.lineWidth = 3; ctx.stroke();
+                ctx.fillStyle = "rgba(234, 179, 8, 0.3)"; ctx.fill();
+            }
+
+            let currentH = parseFloat(inputs.height.value);
+            let cannonY = groundY - (currentH * scale);
+            
+            // --- YENİ EKLENEN: YÜKSELTİ ÇİZGİSİ (SLIDER) ---
+            let maxHScale = 25 * scale;
+            let sliderX = originX - 60; // Silahın yanına yerleştirildi
+            
+            // Slider Arka Planı (Kanal)
+            ctx.fillStyle = "rgba(15, 23, 35, 0.8)";
+            ctx.fillRect(sliderX - 3, groundY - maxHScale, 6, maxHScale);
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.3)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(sliderX - 3, groundY - maxHScale, 6, maxHScale);
+            
+            // Slider Aktif Dolgu
+            if (currentH > 0) {
+                ctx.fillStyle = "rgba(16, 185, 129, 0.4)";
+                ctx.fillRect(sliderX - 3, cannonY, 6, currentH * scale);
+            }
+
+            // Slider Tutamaçları
+            ctx.fillStyle = "#10b981"; // Neon yeşil
+            ctx.beginPath(); ctx.moveTo(sliderX - 3, cannonY); ctx.lineTo(sliderX - 12, cannonY - 8); ctx.lineTo(sliderX - 12, cannonY + 8); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sliderX + 3, cannonY); ctx.lineTo(sliderX + 12, cannonY - 8); ctx.lineTo(sliderX + 12, cannonY + 8); ctx.fill();
+
+            // Silaha bağlanan kılavuz çizgisi
+            ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(sliderX + 12, cannonY); ctx.lineTo(originX - 18, cannonY); ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 'h' harfi
+            ctx.fillStyle = "#94a3b8";
+            ctx.font = "bold 12px monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("h", sliderX, groundY + 16);
+            // ----------------------------------------------
+
+            // Silahın Yükseltici Gövdesi (Stand)
+            if (currentH > 0) {
+                ctx.fillStyle = "#1e293b"; ctx.fillRect(originX - 18, cannonY, 36, currentH * scale);
+                ctx.strokeStyle = "#475569"; ctx.lineWidth = 2; ctx.strokeRect(originX - 18, cannonY, 36, currentH * scale);
+            }
+
+            let ang = parseFloat(inputs.angle.value) * Math.PI / 180;
+            
+            // Açı yayı
+            ctx.beginPath();
+            ctx.arc(originX, cannonY, 35, 0, -ang, ang >= 0);
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.6)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Açı kılavuzu
+            ctx.beginPath();
+            ctx.moveTo(originX, cannonY);
+            ctx.lineTo(originX + 45, cannonY);
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.3)";
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Açı metni
+            ctx.fillStyle = "#06b6d4"; 
+            ctx.font = "bold 13px monospace"; 
+            ctx.textAlign = "left";
+            let textX = originX + 40 * Math.cos(-ang / 2);
+            let textY = cannonY + 40 * Math.sin(-ang / 2) + 4;
+            ctx.fillText(inputs.angle.value + "°", textX, textY);
+
+            // Silah Namlusu
+            ctx.save(); ctx.translate(originX, cannonY); ctx.rotate(-ang);
+            ctx.fillStyle = "#475569"; ctx.fillRect(0, -12, 55, 24); 
+            ctx.fillStyle = "#3b82f6"; ctx.fillRect(50, -14, 6, 28); 
+            ctx.restore();
+
+            // Pivot noktası
+            ctx.beginPath(); ctx.arc(originX, cannonY, 15, 0, Math.PI * 2);
+            ctx.fillStyle = "#05080e"; ctx.fill(); ctx.strokeStyle = "#475569"; ctx.lineWidth = 3; ctx.stroke();
+
+            // Top Mermisi
+            if (state.isRunning) {
+                let px = originX + state.ball.mx * scale;
+                let py = groundY - state.ball.my * scale;
+                let r = 8; 
+                ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
+                ctx.fillStyle = "#f1f5f9"; ctx.fill();
+                ctx.shadowBlur = 15; ctx.shadowColor = "#3b82f6"; ctx.fill(); ctx.shadowBlur = 0;
+            }
+        }
+
+        probe.handle.addEventListener('mousedown', (e) => { state.dragProbe = true; e.stopPropagation(); e.preventDefault(); });
+
+        function processProbeLock(cx, cy) {
+            let snapped = null;
+            let minDistance = 30; 
+            let totalPathPoints = [];
+            state.paths.forEach(p => totalPathPoints = totalPathPoints.concat(p));
+            totalPathPoints = totalPathPoints.concat(state.currentPath);
+
+            for (let pt of totalPathPoints) {
+                let ptPx = originX + pt.x * scale;
+                let ptPy = groundY - pt.y * scale;
+                let d = Math.hypot(ptPx - cx, ptPy - cy);
+                if (d < minDistance) { minDistance = d; snapped = pt; }
+            }
+            state.snappedPoint = snapped;
+
+            if (snapped) {
+                probe.t.innerText = snapped.t.toFixed(3) + " s";
+                probe.x.innerText = snapped.x.toFixed(2) + " m";
+                probe.y.innerText = Math.max(0, snapped.y).toFixed(2) + " m";
+            } else {
+                probe.t.innerText = "-- s";
+                let rawX = (cx - originX) / scale;
+                let rawY = (groundY - cy) / scale;
+                probe.x.innerText = Math.max(0, rawX).toFixed(2) + " m";
+                probe.y.innerText = Math.max(0, rawY).toFixed(2) + " m";
+            }
+            drawScene();
+        }
+
+        // Tıklama ve Sürükleme Mantığı
+        canvas.addEventListener('mousedown', (e) => {
+            let r = canvas.getBoundingClientRect();
+            let mx = e.clientX - r.left; 
+            let my = e.clientY - r.top;
+            let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
+            
+            let distToPivot = Math.hypot(mx - originX, my - cannonY);
+            let sliderX = originX - 60;
+
+            // 1. Namlu/Pivot kontrolü (Açı ayarı için)
+            if(distToPivot < 45) { 
+                state.dragGun = true; 
+                calcAngle(e); 
+                return;
+            }
+
+            // 2. Özel Yükseklik Çizgisi (Slider) kontrolü
+            if (mx > sliderX - 25 && mx < sliderX + 25 && my > groundY - (25 * scale) - 20 && my < groundY + 20) {
+                state.dragHeight = true;
+                return;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => { 
+            let r = viewWrapper.getBoundingClientRect();
+            let mx = e.clientX - r.left; let my = e.clientY - r.top;
+
+            if (state.dragGun) {
+                let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
+                let ang = Math.atan2(cannonY - my, mx - originX);
+                let deg = Math.round(ang * 180 / Math.PI);
+                if (deg >= -90 && deg <= 90) { inputs.angle.value = deg; updateUI(); drawScene(); }
+            } 
+            else if (state.dragHeight) {
+                let newH = (groundY - my) / scale;
+                if (newH < 0) newH = 0;
+                if (newH > 25) newH = 25; 
+                inputs.height.value = Math.round(newH);
+                updateUI(); drawScene();
+            }
+            
+            if (state.dragProbe) {
+                state.probeX = mx - 22; 
+                state.probeY = my - 22;
+                probe.tool.style.left = state.probeX + 'px';
+                probe.tool.style.top = state.probeY + 'px';
+                processProbeLock(mx, my);
+            }
+        });
+
+        window.addEventListener('mouseup', () => { 
+            state.dragGun = false; 
+            state.dragHeight = false; 
+            state.dragProbe = false; 
+        });
+
+        // Hover Efektleri (Cursor)
+        canvas.addEventListener('mousemove', (e) => {
+            if (state.dragGun || state.dragHeight || state.dragProbe) return;
+
+            let r = canvas.getBoundingClientRect();
+            let mx = e.clientX - r.left; let my = e.clientY - r.top;
+            let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
+            
+            let distToPivot = Math.hypot(mx - originX, my - cannonY);
+            let sliderX = originX - 60;
+
+            if (distToPivot < 45) {
+                canvas.style.cursor = 'grab'; // Döndürme/Açı
+            } else if (mx > sliderX - 25 && mx < sliderX + 25 && my > groundY - (25 * scale) - 20 && my < groundY + 20) {
+                canvas.style.cursor = 'ns-resize'; // Yükseklik Slider'ı
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+        });
+
+        function calcAngle(e) {
+            let r = canvas.getBoundingClientRect();
+            let cannonY = groundY - (parseFloat(inputs.height.value) * scale);
+            let ang = Math.atan2(cannonY - (e.clientY - r.top), (e.clientX - r.left) - originX);
+            let deg = Math.round(ang * 180 / Math.PI);
+            if (deg >= -90 && deg <= 90) { inputs.angle.value = deg; updateUI(); drawScene(); }
+        }
+
+        function simPhysicsEngine(time) {
+            if (!state.isRunning || state.isPaused) { state.lastTime = time; requestAnimationFrame(simPhysicsEngine); return; }
+
+            let frameDt = (time - state.lastTime) / 1000;
+            state.lastTime = time;
+            
+            if (frameDt <= 0) { requestAnimationFrame(simPhysicsEngine); return; }
+            if (frameDt > 0.1) frameDt = 0.1;
+
+            let speedMod = parseFloat(document.querySelector('input[name="simSpeed"]:checked').value);
+            let dt = frameDt * speedMod;
+
+            let g = parseFloat(inputs.grav.value); let m = parseFloat(inputs.mass.value); 
+            let d = 0.18; 
+            let activeDrag = inputs.drag.checked;
+            let subSteps = 50; let subDt = dt / subSteps;
+
+            for(let i=0; i<subSteps; i++) {
+                let ax = 0, ay = -g;
+
+                if (activeDrag) {
+                    let rho = 1.204, Cd = 0.47, A = Math.PI * Math.pow(d/2, 2);
+                    let vMag = Math.hypot(state.ball.vx, state.ball.vy);
+                    if(vMag > 0) {
+                        let dragForceFactor = 0.5 * rho * Cd * A * vMag / m;
+                        ax = -dragForceFactor * state.ball.vx;
+                        ay = -g - (dragForceFactor * state.ball.vy);
+                    }
+                }
+
+                state.ball.vx += ax * subDt; state.ball.vy += ay * subDt;
+                let previousY = state.ball.my;
+                state.ball.mx += state.ball.vx * subDt; state.ball.my += state.ball.vy * subDt;
+                state.t += subDt;
+
+                if(state.ball.my > state.maxDeltaY) { state.maxDeltaY = state.ball.my; }
+
+                if (state.ball.my <= 0) {
+                    let interpolationFactor = previousY / (previousY - state.ball.my);
+                    state.ball.mx = state.ball.mx - state.ball.vx * subDt * (1 - interpolationFactor);
+                    state.ball.my = 0;
+                    state.t = state.t - subDt * (1 - interpolationFactor);
+
+                    if (!activeDrag) {
+                        let finalVelocitySq = (state.initialV * state.initialV) + (2 * g * state.initialH);
+                        let vxFinal = state.initialV * Math.cos(parseFloat(inputs.angle.value) * Math.PI / 180);
+                        let vyFinal = -Math.sqrt(Math.abs(finalVelocitySq - (vxFinal * vxFinal)));
+                        state.ball.vx = vxFinal;
+                        state.ball.vy = vyFinal;
+                    }
+                    
+                    finishFlight();
+                    break;
+                }
+                
+                state.currentPath.push({ t: state.t, x: state.ball.mx, y: state.ball.my });
+            }
+
+            let vInst = Math.hypot(state.ball.vx, state.ball.vy);
+
+            huds.t.innerText = state.t.toFixed(2) + " s"; huds.x.innerText = state.ball.mx.toFixed(2) + " m";
+            huds.ymax.innerText = state.maxDeltaY.toFixed(2) + " m"; huds.v.innerText = vInst.toFixed(2) + " m/s";
+
+            drawScene(); requestAnimationFrame(simPhysicsEngine);
+        }
+
+        function finishFlight() {
+            state.isRunning = false; btns.pause.innerText = "DURAKLAT";
+            huds.ymax.innerText = state.maxDeltaY.toFixed(2) + " m";
+            
+            let vFinal = Math.hypot(state.ball.vx, state.ball.vy);
+            huds.v.innerText = vFinal.toFixed(2) + " m/s"; huds.v.style.color = "#10b981"; 
+            
+            state.currentPath.push({ t: state.t, x: state.ball.mx, y: state.ball.my });
+            state.paths.push(state.currentPath); state.currentPath = [];
+            processProbeLock(state.probeX + 22, state.probeY + 22);
+        }
+
+        btns.fire.addEventListener('click', () => {
+            state.t = 0; state.currentPath = [];
+            let angRad = parseFloat(inputs.angle.value) * Math.PI / 180;
+            let initialV0 = parseFloat(inputs.vel.value);
+            let h0 = parseFloat(inputs.height.value);
+            
+            state.initialV = initialV0; state.initialH = h0;
+            state.maxDeltaY = h0;
+            
+            state.ball.mx = 0; state.ball.my = h0;
+            state.ball.vx = initialV0 * Math.cos(angRad); state.ball.vy = initialV0 * Math.sin(angRad);
+
+            huds.v.style.color = "#f1f5f9";
+            
+            state.lastTime = performance.now();
+            state.isRunning = true; state.isPaused = false; btns.pause.innerText = "DURAKLAT";
+        });
+
+        btns.pause.addEventListener('click', () => {
+            if(!state.isRunning) return;
+            state.isPaused = !state.isPaused; btns.pause.innerText = state.isPaused ? "DEVAM ET" : "DURAKLAT";
+        });
+
+        btns.reset.addEventListener('click', () => {
+            state.isRunning = false; state.isPaused = false; state.t = 0; state.maxDeltaY = 0;
+            state.paths = []; state.currentPath = []; state.snappedPoint = null;
+            huds.t.innerText = "0.00 s"; huds.x.innerText = "0.00 m"; huds.ymax.innerText = "0.00 m"; huds.v.style.color = "#f1f5f9";
+            
+            probe.t.innerText = "-- s"; probe.x.innerText = "-- m"; probe.y.innerText = "-- m";
+            
+            state.probeX = canvas.width - 220; 
+            state.probeY = 50;
+            probe.tool.style.top = state.probeY + "px"; probe.tool.style.left = state.probeX + "px";
+
+            btns.pause.innerText = "DURAKLAT"; updateUI(); drawScene();
+        });
+
+        Object.values(inputs).forEach(el => { if(el.tagName === 'INPUT') el.addEventListener('input', () => { updateUI(); drawScene(); }); });
+        inputs.drag.addEventListener('change', updateUI);
+
+        resizeCanvas();
+        updateUI(); 
+        requestAnimationFrame(simPhysicsEngine);
+    </script>
+</body>
+</html>
