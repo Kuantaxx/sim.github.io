@@ -370,20 +370,18 @@
       color: var(--primary);
     }
 
-        /* MODAL MODERN REDESIGN */
+                    /* ZERO-SCROLL FULLSCREEN MODAL (ULTRA CLEAN & NO OVERLAP) */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(3, 7, 18, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      width: 100vw;
+      height: 100vh;
+      background: #040814;
       z-index: 1000;
       display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      overflow: hidden;
       opacity: 0;
-      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.2s ease;
     }
 
     .modal-backdrop.show {
@@ -391,94 +389,84 @@
     }
 
     .modal-box {
-      background: linear-gradient(165deg, #0f172a 0%, #0b1329 55%, #060b18 100%);
-      border: 1px solid rgba(56, 189, 248, 0.28);
-      width: 100%;
-      max-width: 960px;
-      max-height: 92vh;
-      border-radius: 28px;
-      box-shadow: 0 35px 85px -15px rgba(0, 0, 0, 0.95), 0 0 60px rgba(14, 165, 233, 0.12);
+      width: 100vw;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      transform: scale(0.95) translateY(12px);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      background: radial-gradient(circle at 50% 20%, #0f172a 0%, #020612 100%);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
     }
 
-    .modal-backdrop.show .modal-box {
-      transform: scale(1) translateY(0);
-    }
-
-    /* TOP ACTION BAR */
-    .modal-action-bar {
-      padding: 14px 24px;
-      background: rgba(15, 23, 42, 0.85);
+    /* TOP BAR - CLEAN, SPACIOUS, ZERO CLUTTER */
+    .modal-top-bar {
+      height: 58px;
+      padding: 0 24px;
+      background: rgba(15, 23, 42, 0.9);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
       flex-shrink: 0;
+      z-index: 10;
     }
 
-    .modal-badge-group {
+    .top-bar-left {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .m-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.3px;
+      gap: 12px;
+      min-width: 0;
+      flex-shrink: 1;
     }
 
     .m-badge-id {
-      background: rgba(14, 165, 233, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.4);
+      background: rgba(14, 165, 233, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.45);
       color: #38bdf8;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      flex-shrink: 0;
     }
 
-    .m-badge-century {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      color: #fbbf24;
+    .modal-hero-name {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: white;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      margin: 0;
     }
 
-    .m-badge-status {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34d399;
+    .meta-pill-era {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      color: #94a3b8;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
-    .status-pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #34d399;
-      box-shadow: 0 0 8px #34d399;
-      animation: pulse 1.8s infinite;
-    }
-
-    .modal-action-right {
+    .top-bar-center {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
-    .nav-arrow-btn {
+    .nav-btn {
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.14);
       color: #e2e8f0;
       padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.82rem;
+      border-radius: 8px;
+      font-size: 0.80rem;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
@@ -487,200 +475,46 @@
       transition: all 0.2s;
     }
 
-    .nav-arrow-btn:hover {
+    .nav-btn:hover {
       background: rgba(56, 189, 248, 0.2);
       border-color: rgba(56, 189, 248, 0.5);
       color: white;
-      transform: translateY(-1px);
-    }
-
-    .btn-close {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      color: #f1f5f9;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      font-size: 1.35rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      line-height: 1;
-    }
-
-    .btn-close:hover {
-      background: rgba(239, 68, 68, 0.25);
-      border-color: rgba(239, 68, 68, 0.6);
-      color: #fca5a5;
-      transform: rotate(90deg) scale(1.05);
-    }
-
-    /* HERO BANNER */
-    .modal-hero {
-      padding: 22px 28px;
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.2) 100%);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      gap: 26px;
-      flex-shrink: 0;
-    }
-
-    .modal-hero-portrait-col {
-      flex-shrink: 0;
-    }
-
-    .modal-portrait-frame {
-      position: relative;
-      width: 135px;
-      height: 175px;
-      border-radius: 20px;
-      overflow: hidden;
-      border: 2px solid rgba(56, 189, 248, 0.45);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(14, 165, 233, 0.2);
-      background: #000;
-    }
-
-    .modal-portrait-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center 20%;
-      display: block;
-      transition: transform 0.4s ease;
-    }
-
-    .modal-portrait-frame:hover .modal-portrait-img {
-      transform: scale(1.06);
-    }
-
-    .portrait-archival-tag {
-      position: absolute;
-      bottom: 6px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(2, 6, 23, 0.88);
-      backdrop-filter: blur(6px);
-      border: 1px solid rgba(245, 158, 11, 0.5);
-      color: #f59e0b;
-      font-size: 0.64rem;
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 6px;
-      letter-spacing: 0.6px;
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .modal-hero-info-col {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .hero-category-label {
-      font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 1.2px;
-      color: var(--primary);
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .modal-hero-name {
-      font-size: 2.1rem;
-      font-weight: 900;
-      line-height: 1.15;
-      background: linear-gradient(135deg, #ffffff 40%, #bae6fd 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
-    }
-
-    .modal-hero-fullname {
-      font-size: 1.02rem;
-      color: #cbd5e1;
-      font-weight: 600;
-      line-height: 1.35;
-      margin-bottom: 12px;
-    }
-
-    .modal-hero-meta-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-
-    .meta-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      color: #94a3b8;
-    }
-
-    .meta-pill strong {
-      color: #f1f5f9;
-      font-weight: 700;
-    }
-
-    .meta-pill svg {
-      color: var(--primary);
-    }
-
-    .modal-hero-actions-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
     }
 
     .btn-voice-modern {
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border: 1px solid rgba(255, 255, 255, 0.25);
       color: white;
-      padding: 9px 20px;
-      border-radius: 12px;
-      font-size: 0.88rem;
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
       font-weight: 800;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+      gap: 7px;
+      transition: all 0.2s;
     }
 
     .btn-voice-modern:hover {
-      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.65);
-      transform: translateY(-2px);
-      border-color: rgba(255, 255, 255, 0.4);
+      filter: brightness(1.15);
+      transform: translateY(-1px);
     }
 
     .btn-voice-modern.speaking {
       background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-      box-shadow: 0 6px 20px rgba(220, 38, 38, 0.65);
-      animation: pulse 1.4s infinite;
     }
 
     .sound-wave {
       display: flex;
       align-items: center;
-      gap: 3px;
-      height: 16px;
+      gap: 2.5px;
+      height: 14px;
     }
 
     .sound-wave span {
       width: 3px;
-      height: 5px;
+      height: 4px;
       background: white;
       border-radius: 2px;
       transition: height 0.2s;
@@ -693,48 +527,123 @@
 
     @keyframes wave {
       0%, 100% { height: 4px; }
-      50% { height: 16px; }
+      50% { height: 14px; }
     }
 
-    .voice-support-hint {
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .btn-close-fullscreen {
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.78rem;
-      color: #64748b;
-      font-weight: 600;
+      transition: all 0.2s;
     }
 
-    /* SCROLLABLE BENTO BODY */
-    .modal-scroll-body {
-      padding: 22px 28px;
-      overflow-y: auto;
-      flex: 1;
+    .btn-close-fullscreen:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: white;
     }
 
-    .bento-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
+    /* FULLSCREEN WORKSPACE */
+    .fullscreen-workspace {
+      height: calc(100vh - 58px);
+      display: flex;
+      padding: 18px 24px;
+      gap: 20px;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
-    .bento-card {
-      background: rgba(30, 41, 59, 0.45);
+    /* LEFT PORTRAIT COLUMN */
+    .workspace-left-col {
+      width: 240px;
+      flex-shrink: 0;
+      background: rgba(15, 23, 42, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 18px;
-      padding: 18px 20px;
-      transition: all 0.25s ease;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      backdrop-filter: blur(8px);
-      position: relative;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      box-sizing: border-box;
     }
 
-    .bento-card:hover {
-      transform: translateY(-2px);
+    .modal-portrait-frame {
+      position: relative;
+      width: 170px;
+      height: 220px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
+      background: #000;
+      flex-shrink: 0;
+    }
+
+    .modal-portrait-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 20%;
+      display: block;
+    }
+
+    .modal-hero-fullname {
+      font-size: 0.84rem;
+      color: #cbd5e1;
+      font-weight: 600;
+      line-height: 1.35;
+      max-width: 210px;
+    }
+
+    /* RIGHT 2x2 BENTO TILES */
+    .workspace-right-grid {
+      flex: 1;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 14px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .fullscreen-card {
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px 18px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .fullscreen-card:hover {
       background: rgba(30, 41, 59, 0.75);
-      border-color: rgba(56, 189, 248, 0.35);
-      box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.45);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     }
 
     .card-focus {
@@ -757,136 +666,146 @@
       background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%);
     }
 
-    .bento-card-header {
+    .card-top-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
     }
 
-    .bento-icon-box {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-icon-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
     }
 
-    .icon-focus {
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(129, 140, 248, 0.4);
-      color: #a5b4fc;
-    }
+    .icon-focus { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+    .icon-method { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .icon-tools { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .icon-works { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; }
 
-    .icon-method {
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid rgba(52, 211, 153, 0.4);
-      color: #6ee7b7;
-    }
-
-    .icon-tools {
-      background: rgba(245, 158, 11, 0.2);
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      color: #fcd34d;
-    }
-
-    .icon-works {
-      background: rgba(14, 165, 233, 0.2);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #7dd3fc;
-    }
-
-    .bento-card-sub {
-      display: block;
-      font-size: 0.68rem;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      color: #94a3b8;
-      text-transform: uppercase;
-    }
-
-    .bento-card-title {
-      font-size: 0.95rem;
+    .card-title-text {
+      font-size: 0.94rem;
       font-weight: 800;
       color: #f8fafc;
       letter-spacing: -0.01em;
       margin: 0;
     }
 
-    .bento-card-text {
-      font-size: 0.94rem;
-      line-height: 1.65;
-      color: #cbd5e1;
-      flex: 1;
-    }
-
-    /* MODAL BOTTOM BAR */
-    .modal-bottom-bar {
-      padding: 14px 28px;
-      background: rgba(15, 23, 42, 0.85);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-shrink: 0;
-    }
-
-    .modal-footer-hint {
-      font-size: 0.78rem;
-      color: #64748b;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .modal-footer-hint kbd {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-radius: 4px;
-      padding: 2px 6px;
+    .card-action-badge {
       font-size: 0.72rem;
-      color: #cbd5e1;
-      font-family: inherit;
+      color: #38bdf8;
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 9px;
+      border-radius: 6px;
       font-weight: 700;
-    }
-
-    .modal-footer-nav-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .modal-footer-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      color: #e2e8f0;
-      padding: 7px 16px;
-      border-radius: 10px;
-      font-size: 0.84rem;
-      font-weight: 700;
-      cursor: pointer;
+      white-space: nowrap;
       transition: all 0.2s;
     }
 
-    .modal-footer-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
+    .fullscreen-card:hover .card-action-badge {
+      background: rgba(14, 165, 233, 0.3);
       color: white;
+      border-color: rgba(56, 189, 248, 0.6);
     }
 
-    .btn-primary-nav {
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.3) 0%, rgba(2, 132, 199, 0.4) 100%);
-      border-color: rgba(56, 189, 248, 0.4);
-      color: #38bdf8;
+    .card-body-content {
+      font-size: 0.90rem;
+      line-height: 1.55;
+      color: #cbd5e1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      margin-bottom: 6px;
     }
 
-    .btn-primary-nav:hover {
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.5) 0%, rgba(2, 132, 199, 0.6) 100%);
+    /* CARD DETAIL POPUP */
+    .card-popup-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.88);
+      backdrop-filter: blur(14px);
+      z-index: 1200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card-popup-backdrop.show {
+      display: flex;
+    }
+
+    .card-popup-box {
+      background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 680px;
+      padding: 28px;
+      box-shadow: 0 35px 80px rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 14px;
+    }
+
+    .popup-title {
+      font-size: 1.2rem;
+      font-weight: 800;
       color: white;
-      border-color: rgba(56, 189, 248, 0.7);
+      margin: 0;
+    }
+
+    .popup-close-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .popup-close-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+
+    .popup-content-text {
+      font-size: 1.08rem;
+      line-height: 1.7;
+      color: #e2e8f0;
+      max-height: 60vh;
+      overflow-y: auto;
     }
 
     /* LIVE CAPTIONS BANNER */
@@ -942,7 +861,31 @@
       color: var(--text-dim);
     }
 
-        @media (max-width: 768px) {
+                @media (max-width: 860px) {
+      .fullscreen-workspace {
+        flex-direction: column;
+        overflow-y: auto;
+        height: auto;
+      }
+      .workspace-left-col {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px;
+      }
+      .modal-portrait-frame {
+        width: 100px;
+        height: 130px;
+      }
+      .workspace-right-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        height: auto;
+        flex: none;
+      }
+      .fullscreen-card {
+        min-height: 120px;
+      }
       .grid-container {
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: 14px;
@@ -952,45 +895,6 @@
       }
       .card-name {
         font-size: 1rem;
-      }
-      .modal-box {
-        max-height: 95vh;
-        border-radius: 20px;
-      }
-      .modal-hero {
-        flex-direction: column;
-        text-align: center;
-        gap: 16px;
-        padding: 18px 20px;
-      }
-      .modal-portrait-frame {
-        width: 110px;
-        height: 140px;
-        margin: 0 auto;
-      }
-      .modal-hero-meta-row {
-        justify-content: center;
-      }
-      .modal-hero-actions-row {
-        justify-content: center;
-      }
-      .bento-grid {
-        grid-template-columns: 1fr;
-      }
-      .modal-bottom-bar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-      }
-      .modal-footer-hint {
-        justify-content: center;
-      }
-      .modal-footer-nav-group {
-        justify-content: space-between;
-      }
-      .modal-footer-btn {
-        flex: 1;
-        text-align: center;
       }
     }
   </style>
@@ -1037,148 +941,120 @@
   <!-- KARTLAR GRID -->
   <main class="grid-container" id="grid"></main>
 
-    <!-- MODERN BENTO MODAL -->
+          <!-- FULLSCREEN DETAIL VIEW (TAM SAYFA - SIFIR SCROLL) -->
   <div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalHeroName">
       
-      <!-- TOP ACTION BAR -->
-      <div class="modal-action-bar">
-        <div class="modal-badge-group">
-          <span class="m-badge m-badge-id" id="modalBadgeId">#1</span>
-          <span class="m-badge m-badge-century" id="modalBadgeCentury">8-9. Yüzyıl</span>
-          <span class="m-badge m-badge-status" id="modalBadgeStatus">
-            <span class="status-pulse-dot"></span>
-            <span id="modalStatusText">İncelendi</span>
-          </span>
+      <!-- TOP CONTROL STRIP (FERAH & ÇAKIŞMASIZ) -->
+      <header class="modal-top-bar">
+        <div class="top-bar-left">
+          <span class="m-badge-id" id="modalBadgeId">#1</span>
+          <h2 class="modal-hero-name" id="modalHeroName">Harezmi</h2>
+          <span class="meta-pill-era" id="modalHeroEra">y. 780 – y. 850</span>
         </div>
-        <div class="modal-action-right">
-          <button class="nav-arrow-btn" onclick="prevScientist()" title="Önceki Şahsiyet (← Sol Ok)">
-            <span>‹</span> <span>Önceki</span>
-          </button>
-          <button class="nav-arrow-btn" onclick="nextScientist()" title="Sonraki Şahsiyet (→ Sağ Ok)">
-            <span>Sonraki</span> <span>›</span>
-          </button>
-          <button class="btn-close" onclick="closeModal()" title="Kapat (ESC)" aria-label="Kapat">&times;</button>
-        </div>
-      </div>
 
-      <!-- HERO BANNER SECTION -->
-      <div class="modal-hero">
-        <div class="modal-hero-portrait-col">
+        <div class="top-bar-center">
+          <button class="nav-btn" onclick="prevScientist()" title="Önceki Şahsiyet">‹ Önceki</button>
+          <button class="btn-voice-modern" id="btnVoice" onclick="toggleVoice()">
+            <div class="sound-wave" id="soundWave">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <span id="btnVoiceText">Seslendir</span>
+          </button>
+          <button class="nav-btn" onclick="nextScientist()" title="Sonraki Şahsiyet">Sonraki ›</button>
+        </div>
+
+        <div class="top-bar-right">
+          <button class="btn-close-fullscreen" onclick="closeModal()" title="Kapat">
+            <span>✕</span> <span>Kapat</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- MAIN FULLSCREEN WORKSPACE (TAM SAYFA YAYILIM) -->
+      <div class="fullscreen-workspace">
+        
+        <!-- LEFT PORTRAIT COLUMN (SADE & TEMİZ) -->
+        <div class="workspace-left-col">
           <div class="modal-portrait-frame">
-            <img id="modalHeroImg" class="modal-portrait-img" src="" alt="Portre">
-            <div class="portrait-archival-tag">MEB ARŞİVİ</div>
+            <img id="modalHeroImg" class="modal-portrait-img" src="" alt="">
           </div>
+          <div class="modal-hero-fullname" id="modalHeroFullName">Ebû Ca‘fer Muhammed b. Mûsâ el-Hârizmî</div>
         </div>
 
-        <div class="modal-hero-info-col">
-          <div class="hero-category-label">TÜRK-İSLAM BİLİM VE DÜŞÜNCE TARİHİ</div>
-          <h2 class="modal-hero-name" id="modalHeroName">Şahsiyet Adı</h2>
-          <div class="modal-hero-fullname" id="modalHeroFullName">Tam Adı ve Ünvanı</div>
-          
-          <div class="modal-hero-meta-row">
-            <div class="meta-pill">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-              <span>Ömür:</span> <strong id="modalHeroEra">y. 780 – y. 850</strong>
-            </div>
-            <div class="meta-pill">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>Dönem:</span> <strong id="modalHeroCentury">8-9. Yüzyıl</strong>
-            </div>
-          </div>
-
-          <div class="modal-hero-actions-row">
-            <button class="btn-voice-modern" id="btnVoice" onclick="toggleVoice()">
-              <div class="sound-wave" id="soundWave">
-                <span></span><span></span><span></span><span></span>
-              </div>
-              <span id="btnVoiceText">Sesli İncele & Dinle</span>
-            </button>
-            <div class="voice-support-hint">
-              <span>🔊</span> <span>Türkçe TTS Seslendirme</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4'LÜ BENTO GRID GÖVDESİ -->
-      <div class="modal-scroll-body">
-        <div class="bento-grid">
+        <!-- RIGHT 4 BENTO TILES (HER ALAN %100 GÖRÜNÜR & POPUP AÇILIR) -->
+        <div class="workspace-right-grid">
           
           <!-- KART 1: ÇALIŞMA KONULARI -->
-          <div class="bento-card card-focus">
-            <div class="bento-card-header">
-              <div class="bento-icon-box icon-focus">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+          <div class="fullscreen-card card-focus" onclick="openCardPopup('Çalışma Konuları ve Uğraş Alanı', document.getElementById('modalFocus').getAttribute('data-full') || document.getElementById('modalFocus').textContent)">
+            <div class="card-top-header">
+              <div class="card-header-left">
+                <div class="card-icon-box icon-focus">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                </div>
+                <h3 class="card-title-text">Çalışma Konuları ve Uğraş Alanı</h3>
               </div>
-              <div>
-                <span class="bento-card-sub">TEMEL ALAN</span>
-                <h3 class="bento-card-title">Çalışma Konuları ve Uğraş Alanı</h3>
-              </div>
+              <span class="card-action-badge">Detayları İncele →</span>
             </div>
-            <div class="bento-card-text" id="modalFocus">...</div>
+            <div class="card-body-content" id="modalFocus">...</div>
           </div>
 
-          <!-- KART 2: YÖNTEMLER -->
-          <div class="bento-card card-method">
-            <div class="bento-card-header">
-              <div class="bento-icon-box icon-method">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 18h12"></path><path d="M12 2v4"></path><path d="m19 7-3 3"></path><path d="m5 7 3 3"></path><circle cx="12" cy="14" r="4"></circle></svg>
+          <!-- KART 2: BİLİMSEL YÖNTEMLER -->
+          <div class="fullscreen-card card-method" onclick="openCardPopup('Kullandığı Bilimsel Yöntemler', document.getElementById('modalMethod').getAttribute('data-full') || document.getElementById('modalMethod').textContent)">
+            <div class="card-top-header">
+              <div class="card-header-left">
+                <div class="card-icon-box icon-method">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 18h12"></path><path d="M12 2v4"></path><path d="m19 7-3 3"></path><path d="m5 7 3 3"></path><circle cx="12" cy="14" r="4"></circle></svg>
+                </div>
+                <h3 class="card-title-text">Kullandığı Bilimsel Yöntemler</h3>
               </div>
-              <div>
-                <span class="bento-card-sub">METODOLOJİ</span>
-                <h3 class="bento-card-title">Kullandığı Bilimsel Yöntemler</h3>
-              </div>
+              <span class="card-action-badge">Detayları İncele →</span>
             </div>
-            <div class="bento-card-text" id="modalMethod">...</div>
+            <div class="card-body-content" id="modalMethod">...</div>
           </div>
 
-          <!-- KART 3: ARAÇ VE DÜZENEKLER -->
-          <div class="bento-card card-tools">
-            <div class="bento-card-header">
-              <div class="bento-icon-box icon-tools">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          <!-- KART 3: ARAÇ VE GEREÇLER -->
+          <div class="fullscreen-card card-tools" onclick="openCardPopup('Kullandığı Araç ve Gereçler', document.getElementById('modalTools').getAttribute('data-full') || document.getElementById('modalTools').textContent)">
+            <div class="card-top-header">
+              <div class="card-header-left">
+                <div class="card-icon-box icon-tools">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                </div>
+                <h3 class="card-title-text">Kullandığı Araç ve Gereçler</h3>
               </div>
-              <div>
-                <span class="bento-card-sub">TEKNOLOJİK DÜZENEKLER</span>
-                <h3 class="bento-card-title">Kullandığı Araç ve Gereçler</h3>
-              </div>
+              <span class="card-action-badge">Detayları İncele →</span>
             </div>
-            <div class="bento-card-text" id="modalTools">...</div>
+            <div class="card-body-content" id="modalTools">...</div>
           </div>
 
-          <!-- KART 4: ESERLER VE KATKILAR -->
-          <div class="bento-card card-works">
-            <div class="bento-card-header">
-              <div class="bento-icon-box icon-works">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          <!-- KART 4: ESERLERİ VE KATKILARI -->
+          <div class="fullscreen-card card-works" onclick="openCardPopup('Başlıca Eserleri ve Katkıları', document.getElementById('modalWorks').getAttribute('data-full') || document.getElementById('modalWorks').textContent)">
+            <div class="card-top-header">
+              <div class="card-header-left">
+                <div class="card-icon-box icon-works">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                </div>
+                <h3 class="card-title-text">Başlıca Eserleri ve Katkıları</h3>
               </div>
-              <div>
-                <span class="bento-card-sub">MEDENİYET MİRASI</span>
-                <h3 class="bento-card-title">Başlıca Eserleri ve Katkıları</h3>
-              </div>
+              <span class="card-action-badge">Detayları İncele →</span>
             </div>
-            <div class="bento-card-text" id="modalWorks">...</div>
+            <div class="card-body-content" id="modalWorks">...</div>
           </div>
 
         </div>
       </div>
 
-      <!-- MODAL BOTTOM BAR -->
-      <div class="modal-bottom-bar">
-        <div class="modal-footer-hint">
-          <span>Klavye Kısayolları:</span> 
-          <kbd>←</kbd> Önceki &nbsp;•&nbsp; 
-          <kbd>→</kbd> Sonraki &nbsp;•&nbsp; 
-          <kbd>Boşluk (Space)</kbd> Seslendir &nbsp;•&nbsp; 
-          <kbd>ESC</kbd> Kapat
-        </div>
-        <div class="modal-footer-nav-group">
-          <button class="modal-footer-btn" onclick="prevScientist()">← Önceki Şahsiyet</button>
-          <button class="modal-footer-btn btn-primary-nav" onclick="nextScientist()">Sonraki Şahsiyet →</button>
-        </div>
-      </div>
+    </div>
+  </div>
 
+  <!-- KART DETAY POPUP (ODAKLANMIŞ DETAY PENCERESİ) -->
+  <div class="card-popup-backdrop" id="cardPopupBackdrop" onclick="handleCardPopupClick(event)">
+    <div class="card-popup-box">
+      <div class="popup-header">
+        <h3 class="popup-title" id="popupCardTitle">Detay</h3>
+        <button class="popup-close-btn" onclick="closeCardPopup()">&times;</button>
+      </div>
+      <div class="popup-content-text" id="popupCardText">...</div>
     </div>
   </div>
 
@@ -1484,33 +1360,45 @@
       reviewedScientists.add(s.id);
       updateScormProgress();
 
-      // Hero bilgileri
-      document.getElementById('modalHeroName').textContent = s.name;
-      document.getElementById('modalHeroFullName').textContent = s.fullName;
-      document.getElementById('modalHeroEra').textContent = s.era;
-      document.getElementById('modalHeroCentury').textContent = s.century;
-      document.getElementById('modalBadgeId').textContent = `#${s.id}`;
-      document.getElementById('modalBadgeCentury').textContent = s.century;
-      document.getElementById('modalStatusText').textContent = "İncelendi";
+      const setTxt = (elemId, val) => {
+        const el = document.getElementById(elemId);
+        if (el) el.textContent = val;
+      };
 
-      // 4 Alan
-      document.getElementById('modalFocus').textContent = s.focus;
-      document.getElementById('modalMethod').textContent = s.method;
-      document.getElementById('modalTools').textContent = s.tools;
-      document.getElementById('modalWorks').textContent = s.works;
+      setTxt('modalHeroName', s.name);
+      setTxt('modalHeroFullName', s.fullName);
+      setTxt('modalHeroEra', s.era);
+      setTxt('modalBadgeId', '#' + s.id);
+
+      const setCardData = (elemId, val) => {
+        const el = document.getElementById(elemId);
+        if (el) {
+          el.textContent = val;
+          el.setAttribute('data-full', val);
+        }
+      };
+
+      setCardData('modalFocus', s.focus);
+      setCardData('modalMethod', s.method);
+      setCardData('modalTools', s.tools);
+      setCardData('modalWorks', s.works);
 
       const modalHeroImg = document.getElementById('modalHeroImg');
-      modalHeroImg.src = portraitsData[s.id] || '';
-      modalHeroImg.alt = s.name;
+      if (modalHeroImg) {
+        modalHeroImg.src = portraitsData[s.id] || '';
+        modalHeroImg.alt = '';
+      }
 
       // TTS butonu sıfırla
       stopVoice();
 
       const modalBackdrop = document.getElementById('modalBackdrop');
-      modalBackdrop.style.display = 'flex';
-      requestAnimationFrame(() => {
-        modalBackdrop.classList.add('show');
-      });
+      if (modalBackdrop) {
+        modalBackdrop.style.display = 'flex';
+        requestAnimationFrame(() => {
+          modalBackdrop.classList.add('show');
+        });
+      }
       document.body.style.overflow = 'hidden';
 
       renderCards(scientists);
@@ -1518,13 +1406,16 @@
 
     function closeModal() {
       stopVoice();
+      closeCardPopup();
       const modalBackdrop = document.getElementById('modalBackdrop');
-      modalBackdrop.classList.remove('show');
-      setTimeout(() => {
-        modalBackdrop.style.display = 'none';
-        document.body.style.overflow = 'auto';
-        activeScientist = null;
-      }, 250);
+      if (modalBackdrop) {
+        modalBackdrop.classList.remove('show');
+        setTimeout(() => {
+          modalBackdrop.style.display = 'none';
+          document.body.style.overflow = 'auto';
+          activeScientist = null;
+        }, 200);
+      }
     }
 
     function nextScientist() {
@@ -1550,7 +1441,12 @@
       const modal = document.getElementById('modalBackdrop');
       if (modal && (modal.style.display === 'flex' || modal.classList.contains('show'))) {
         if (e.key === 'Escape') {
-          closeModal();
+          const popup = document.getElementById('cardPopupBackdrop');
+          if (popup && popup.classList.contains('show')) {
+            closeCardPopup();
+          } else {
+            closeModal();
+          }
         } else if (e.key === 'ArrowRight') {
           nextScientist();
         } else if (e.key === 'ArrowLeft') {
@@ -1573,6 +1469,22 @@
                s.works.toLowerCase().includes(query);
       });
       renderCards(filtered);
+    }
+
+        /* KART DETAY POPUP FONKSİYONLARI */
+    function openCardPopup(title, text) {
+      document.getElementById('popupCardTitle').textContent = title;
+      document.getElementById('popupCardText').textContent = text;
+      document.getElementById('cardPopupBackdrop').classList.add('show');
+    }
+
+    function closeCardPopup() {
+      const p = document.getElementById('cardPopupBackdrop');
+      if (p) p.classList.remove('show');
+    }
+
+    function handleCardPopupClick(e) {
+      if (e.target.id === 'cardPopupBackdrop') closeCardPopup();
     }
 
     /* SCORM API ENTEGRASYONU */
