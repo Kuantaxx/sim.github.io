@@ -1579,7 +1579,96 @@
       }
     }
 
-    /* SESLENDİRME & ALTYAZI (TTS) */
+    /* GELİŞMİŞ DOĞAL TÜRKÇE SESLENDİRME & ALTYAZI MOTORU */
+    let cachedNaturalVoice = null;
+    let voiceSentenceQueue = [];
+    let currentSentenceIndex = 0;
+    let speechTimer = null;
+
+    function findBestNaturalTurkishVoice() {
+      if (!window.speechSynthesis) return null;
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (voices.length === 0) return null;
+
+      // Türkçe destekleyen tüm sesleri filtrele
+      const trVoices = voices.filter(v => {
+        const lang = (v.lang || '').toLowerCase();
+        const name = (v.name || '').toLowerCase();
+        return lang.startsWith('tr') || lang.includes('turkish') || name.includes('türkçe') || name.includes('turkish') || name.includes('yelda') || name.includes('cem');
+      });
+
+      if (trVoices.length === 0) return null;
+
+      // Doğallık ve netlik öncelik sıralaması:
+      // 1. Google Türkçe (Chrome yerleşik yüksek kaliteli doğal ses)
+      // 2. Microsoft Natural Online sesleri (Ahmet / Emel Natural)
+      // 3. Apple Enhanced / Premium Yelda veya Cem
+      // 4. Standart Yelda
+      // 5. İlk bulunan Türkçe ses
+      const googleVoice = trVoices.find(v => v.name.includes('Google') || v.name.includes('google'));
+      if (googleVoice) return googleVoice;
+
+      const msNatural = trVoices.find(v => v.name.includes('Natural') || v.name.includes('Online'));
+      if (msNatural) return msNatural;
+
+      const appleEnhanced = trVoices.find(v => v.name.includes('Enhanced') || v.name.includes('Premium'));
+      if (appleEnhanced) return appleEnhanced;
+
+      const yeldaOrCem = trVoices.find(v => v.name.includes('Yelda') || v.name.includes('Cem'));
+      if (yeldaOrCem) return yeldaOrCem;
+
+      return trVoices[0];
+    }
+
+    function initVoiceEngine() {
+      if (!window.speechSynthesis) return;
+      cachedNaturalVoice = findBestNaturalTurkishVoice();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          cachedNaturalVoice = findBestNaturalTurkishVoice();
+        };
+      }
+    }
+
+    // Metni robotik kısaltmalardan arındırıp doğal, akıcı konuşma diline çeviren fonksiyon
+    function prepareNaturalNarrationSentences(s) {
+      let name = s.name;
+      let fullName = s.fullName || '';
+      let era = s.era || '';
+      let focus = s.focus || '';
+      let method = s.method || '';
+      let tools = s.tools || '';
+      let works = s.works || '';
+
+      // Unvan ve tarihsel ekleri doğal telaffuza dönüştür
+      fullName = fullName.replace(/Ordinaryüs\s*Prof\.\s*Dr\./gi, 'Ordinaryüs Profesör Doktor ');
+      fullName = fullName.replace(/Ord\.\s*Prof\.\s*Dr\./gi, 'Ordinaryüs Profesör Doktor ');
+      fullName = fullName.replace(/Prof\.\s*Dr\./gi, 'Profesör Doktor ');
+      fullName = fullName.replace(/Dr\./gi, 'Doktor ');
+      fullName = fullName.replace(/\bb\.\s*/g, ' bin '); // Ebu Cafer Muhammed b. Musa -> bin Musa
+
+      // Yaşam yılı aralıklarını akıcı Türkçe söyleyişe uyarla
+      let eraSpoken = era;
+      eraSpoken = eraSpoken.replace(/y\.\s*(\d+)\s*–\s*y\.\s*(\d+)/g, 'Yaklaşık $1 ile $2 yılları arasında');
+      eraSpoken = eraSpoken.replace(/y\.\s*(\d+)\s*–\s*(\d+)/g, 'Yaklaşık $1 ile $2 yılları arasında');
+      eraSpoken = eraSpoken.replace(/(\d+)\s*–\s*y\.\s*(\d+)/g, '$1 ile yaklaşık $2 yılları arasında');
+      eraSpoken = eraSpoken.replace(/(\d+)\s*–\s*(\d+)/g, '$1 ile $2 yılları arasında');
+
+      // Eser parantezlerini robotik okumaktan kurtar
+      let cleanWorks = works.replace(/\((.*?)\)/g, ', yani $1, ');
+      cleanWorks = cleanWorks.replace(/GAS\s*-\s*/gi, 'kısa adıyla Gas, ');
+      cleanWorks = cleanWorks.replace(/y\.\s*(\d+)/g, 'yaklaşık $1');
+
+      // Akıcı, pedagojik ve doğal ritimli 5 temel cümle
+      return [
+        `${name}. Tam adıyla ${fullName}. ${eraSpoken} yaşamıştır.`,
+        `Temel çalışma alanları: ${focus}.`,
+        `Bilimsel araştırmalarında izlediği yöntemler: ${method}.`,
+        `Kullandığı araç ve düzenekler: ${tools}.`,
+        `Başlıca eserleri ve medeniyete katkıları: ${cleanWorks}.`
+      ];
+    }
+
     function toggleVoice() {
       if (isSpeaking) {
         stopVoice();
@@ -1591,52 +1680,77 @@
     function startVoice() {
       if (!activeScientist || !window.speechSynthesis) return;
 
-      window.speechSynthesis.cancel();
+      stopVoice();
 
-      const textParts = [
-        `${activeScientist.name}. ${activeScientist.fullName}. Yaşadığı dönem: ${activeScientist.era}.`,
-        `Çalışma Konuları: ${activeScientist.focus}`,
-        `Kullandığı Yöntemler: ${activeScientist.method}`,
-        `Kullandığı Araçlar: ${activeScientist.tools}`,
-        `Eserleri ve Katkıları: ${activeScientist.works}`
-      ];
-
-      const fullText = textParts.join(" ");
-      const utterance = new SpeechSynthesisUtterance(fullText);
-      utterance.lang = 'tr-TR';
-      utterance.rate = 0.95;
-
-      const btn = document.getElementById('btnVoice');
-      btn.classList.add('speaking');
-      const voiceText = document.getElementById('btnVoiceText');
-      if (voiceText) voiceText.textContent = "Seslendirmeyi Durdur";
-      isSpeaking = true;
-
-      if (captionsEnabled) {
-        document.getElementById('captionBanner').style.display = 'flex';
-        document.getElementById('captionText').textContent = textParts[0];
+      if (!cachedNaturalVoice) {
+        cachedNaturalVoice = findBestNaturalTurkishVoice();
       }
 
-      utterance.onboundary = (e) => {
-        const spoken = fullText.substr(e.charIndex, 48);
-        document.getElementById('captionText').textContent = spoken + "...";
+      voiceSentenceQueue = prepareNaturalNarrationSentences(activeScientist);
+      currentSentenceIndex = 0;
+      isSpeaking = true;
+
+      const btn = document.getElementById('btnVoice');
+      if (btn) btn.classList.add('speaking');
+      const voiceText = document.getElementById('btnVoiceText');
+      if (voiceText) voiceText.textContent = "Durdur";
+
+      playNextSentence();
+    }
+
+    function playNextSentence() {
+      if (!isSpeaking || currentSentenceIndex >= voiceSentenceQueue.length) {
+        stopVoice();
+        return;
+      }
+
+      const sentenceText = voiceSentenceQueue[currentSentenceIndex];
+      const utterance = new SpeechSynthesisUtterance(sentenceText);
+      utterance.lang = 'tr-TR';
+      utterance.rate = 0.90;  // Doğal, sakin ve anlaşılır insan konuşma ritmi
+      utterance.pitch = 1.0; // Doğal ses tonu
+
+      if (cachedNaturalVoice) {
+        utterance.voice = cachedNaturalVoice;
+      }
+
+      if (captionsEnabled) {
+        const banner = document.getElementById('captionBanner');
+        if (banner) banner.style.display = 'flex';
+        const capText = document.getElementById('captionText');
+        if (capText) capText.textContent = sentenceText;
+      }
+
+      utterance.onend = () => {
+        currentSentenceIndex++;
+        if (isSpeaking && currentSentenceIndex < voiceSentenceQueue.length) {
+          // Cümleler arası doğal nefes alma payı (200 milisaniye)
+          speechTimer = setTimeout(playNextSentence, 220);
+        } else {
+          stopVoice();
+        }
       };
 
-      utterance.onend = stopVoice;
-      utterance.onerror = stopVoice;
+      utterance.onerror = (e) => {
+        console.warn('TTS playback note:', e);
+        stopVoice();
+      };
 
       window.speechSynthesis.speak(utterance);
     }
 
     function stopVoice() {
+      if (speechTimer) clearTimeout(speechTimer);
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       isSpeaking = false;
+      voiceSentenceQueue = [];
+      currentSentenceIndex = 0;
+
       const btn = document.getElementById('btnVoice');
-      if (btn) {
-        btn.classList.remove('speaking');
-        const voiceText = document.getElementById('btnVoiceText');
-        if (voiceText) voiceText.textContent = "Sesli İncele & Dinle";
-      }
+      if (btn) btn.classList.remove('speaking');
+      const voiceText = document.getElementById('btnVoiceText');
+      if (voiceText) voiceText.textContent = "Seslendir";
+
       const banner = document.getElementById('captionBanner');
       if (banner) banner.style.display = 'none';
     }
@@ -1644,6 +1758,7 @@
     // Başlangıç
     window.addEventListener('DOMContentLoaded', () => {
       initSCORM();
+      initVoiceEngine();
       renderCards(scientists);
     });
   </script>
