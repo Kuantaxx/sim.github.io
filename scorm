@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML'den SCORM 1.2'ye Dönüştürücü</title>
+    <!-- ZIP oluşturmak için JSZip kütüphanesi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        textarea {
+            height: 250px;
+            resize: vertical;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #219150;
+        }
+        .info {
+            background: #e8f4f8;
+            padding: 10px 15px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📦 HTML'den SCORM 1.2 Paketleyici</h1>
+    
+    <div class="info">
+        <strong>Bilgi:</strong> Bu araç, girdiğiniz HTML koduna otomatik olarak SCORM 1.2 API bağlantısını ve "Eğitimi Tamamla" butonunu (isteğe bağlı) ekleyerek LMS sistemlerine (Moodle vb.) yüklenebilir bir <code>.zip</code> dosyası üretir.
+    </div>
+
+    <div class="form-group">
+        <label for="courseTitle">Eğitim Başlığı (Course Title):</label>
+        <input type="text" id="courseTitle" value="Örnek Eğitim Modülü" placeholder="Örn: İş Sağlığı ve Güvenliği">
+    </div>
+
+    <div class="form-group">
+        <label for="orgName">Kurum / Organizasyon Adı (Boşluksuz İngilizce karakter):</label>
+        <input type="text" id="orgName" value="Kurum_Adi" placeholder="Örn: Akademi_Egitim">
+    </div>
+
+    <div class="form-group">
+        <label for="htmlContent">HTML İçeriğiniz (Body içine gelecek kodlar veya tam HTML):</label>
+        <textarea id="htmlContent">
+<h2>Hoş Geldiniz!</h2>
+<p>Bu içerik SCORM 1.2 paketine dönüştürülmüştür.</p>
+<p>Eğitimi tamamlamak için aşağıdaki butona tıklayabilirsiniz.</p>
+<button onclick="completeCourse()" style="padding:10px; background:#3498db; color:#fff; border:none; border-radius:4px; cursor:pointer;">Eğitimi Tamamla (LMS'e Bildir)</button>
+        </textarea>
+    </div>
+
+    <button onclick="generateSCORM()">SCORM Paketini İndir (.zip)</button>
+</div>
+
+<script>
+    // 1. imsmanifest.xml Şablonu Oluşturucu
+    function getManifestXML(title, org) {
+        const cleanOrg = org.replace(/[^a-zA-Z0-9_]/g, "_");
+        return `<?xml version="1.0" standalone="no" ?>
+<manifest identifier="com.scorm.${cleanOrg}" version="1.0"
+          xmlns="http://www.imsproject.org/xsd/imscp_rootv1p1p2"
+          xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://www.imsproject.org/xsd/imscp_rootv1p1p2 imscp_rootv1p1p2.xsd
+                              http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd
+                              http://www.adlnet.org/xsd/adlcp_rootv1p2 adlcp_rootv1p2.xsd">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>1.2</schemaversion>
+  </metadata>
+  <organizations default="${cleanOrg}">
+    <organization identifier="${cleanOrg}">
+      <title>${title}</title>
+      <item identifier="item_1" identifierref="resource_1">
+        <title>${title}</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="resource_1" type="webcontent" adlcp:scormtype="sco" href="index.html">
+      <file href="index.html"/>
+      <file href="scorm.js"/>
+    </resource>
+  </resources>
+</manifest>`;
+    }
+
+    // 2. SCORM 1.2 JS API Wrapper Kodu
+    function getScormJS() {
+        return `var API = null;
+
+function findAPI(win) {
+    var findAPITries = 0;
+    while ((win.API == null) && (win.parent != null) && (win.parent != win)) {
+        findAPITries++;
+        if (findAPITries > 7) return null;
+        win = win.parent;
+    }
+    return win.API;
+}
+
+function getAPI() {
+    var theAPI = findAPI(window);
+    if ((theAPI == null) && (window.opener != null) && (typeof(window.opener) != "undefined")) {
+        theAPI = findAPI(window.opener);
+    }
+    return theAPI;
+}
+
+function initSCORM() {
+    API = getAPI();
+    if (API != null) {
+        API.LMSInitialize("");
+        API.LMSSetValue("cmi.core.lesson_status", "incomplete");
+        API.LMSCommit("");
+        console.log("SCORM Başlatıldı.");
+    } else {
+        console.warn("SCORM API bulunamadı (LMS dışında çalışıyor olabilir).");
+    }
+}
+
+function completeCourse(score) {
+    if (API != null) {
+        if (score !== undefined) {
+            API.LMSSetValue("cmi.core.score.raw", score);
+        }
+        API.LMSSetValue("cmi.core.lesson_status", "completed");
+        API.LMSCommit("");
+        API.LMSFinish("");
+        alert("Eğitim tamamlandı bilgisi LMS'e gönderildi!");
+    } else {
+        alert("LMS bağlantısı yok, ancak fonksiyon tetiklendi.");
+    }
+}
+
+window.onload = function() {
+    initSCORM();
+};
+
+window.onbeforeunload = function() {
+    if (API != null) {
+        API.LMSFinish("");
+    }
+};`;
+    }
+
+    // 3. Kullanıcının HTML'ini SCORM JS ile Birleştirme
+    function wrapHTML(userHTML, title) {
+        return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <script src="scorm.js"><\/script>
+</head>
+<body>
+    ${userHTML}
+</body>
+</html>`;
+    }
+
+    // 4. ZIP Oluşturma ve İndirme İşlemi
+    function generateSCORM() {
+        const title = document.getElementById('courseTitle').value || "Egitim";
+        const org = document.getElementById('orgName').value || "Kurum";
+        const htmlContent = document.getElementById('htmlContent').value;
+
+        const zip = new JSZip();
+
+        // Dosyaları ZIP'e ekle
+        zip.file("imsmanifest.xml", getManifestXML(title, org));
+        zip.file("scorm.js", getScormJS());
+        zip.file("index.html", wrapHTML(htmlContent, title));
+
+        // ZIP'i oluştur ve indir
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const a = document.createElement("a");
+            const url = URL.createObjectURL(content);
+            a.href = url;
+            a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "_")}_scorm12.zip`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);  
+            }, 0);
+        });
+    }
+</script>
+
+</body>
+</html>
